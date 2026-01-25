@@ -4,7 +4,7 @@ import { Check, Star, Zap, Crown, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
-import type { SubscriptionPlan } from '@ai-video-studio/types';
+import type { SubscriptionPlan } from '../../types';
 
 interface PricingTableProps {
   onSelectPlan?: (planId: string) => void;

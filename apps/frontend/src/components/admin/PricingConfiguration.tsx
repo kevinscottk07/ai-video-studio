@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
-import type { PricingConfig, OperationType } from '@ai-video-studio/types';
+import type { PricingConfig, OperationType } from '../../types';
 
 /**
  * Pricing Configuration Component

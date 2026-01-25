@@ -33,7 +33,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Skeleton } from '../ui/skeleton';
-import type { DateRange } from '@ai-video-studio/types';
+import type { DateRange } from '../../types';
 
 /**
  * Executive Admin Dashboard

@@ -13,6 +13,7 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../../../hooks/useLanguage';
+import React from 'react';
 import { useVideoGenerationParams } from '../../../hooks/useVideoGeneration';
 import i18n from '../../../i18n/index';
 
@@ -58,13 +59,11 @@ const createWrapper = () => {
     },
   });
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <I18nextProvider i18n={i18n}>
-        {children}
-      </I18nextProvider>
-    </QueryClientProvider>
-  );
+  return ({ children }: { children: React.ReactNode }) => {
+    return React.createElement(QueryClientProvider, { client: queryClient },
+      React.createElement(I18nextProvider, { i18n: i18n }, children)
+    )
+  }
 };
 
 describe('Property 6: Multilingual Interface and Content', () => {

@@ -15,7 +15,7 @@ import type {
   GetAuditLogsResponse,
   DateRange,
   User
-} from '@ai-video-studio/types';
+} from '../types';
 
 /**
  * Admin Dashboard Hook

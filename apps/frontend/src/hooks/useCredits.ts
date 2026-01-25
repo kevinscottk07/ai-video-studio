@@ -11,7 +11,7 @@ import type {
   GetCreditHistoryRequest,
   EstimateCreditsRequest,
   TransactionType,
-} from '@ai-video-studio/types';
+} from '../types';
 
 export const useCredits = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();

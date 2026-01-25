@@ -18,6 +18,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { useUser, useCreateUserProfile, useAuthStatus } from '../../../hooks/useUser'
 import { userApi } from '../../../services/api/userApi'
 import { ReactNode } from 'react'
+import React from 'react'
 
 // Mock Auth0
 vi.mock('@auth0/auth0-react')
@@ -116,11 +117,9 @@ const createWrapper = () => {
     },
   })
 
-  return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  )
+  return ({ children }: { children: ReactNode }) => {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children)
+  }
 }
 
 describe('Authentication System - Property Tests', () => {

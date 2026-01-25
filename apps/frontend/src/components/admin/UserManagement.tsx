@@ -35,7 +35,7 @@ import {
 } from '../ui/dialog';
 import { Skeleton } from '../ui/skeleton';
 import { Pagination } from '../ui/pagination';
-import type { User, UserRole } from '@ai-video-studio/types';
+import type { User, UserRole } from '../../types';
 
 /**
  * User Management Component

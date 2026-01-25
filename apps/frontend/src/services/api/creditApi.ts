@@ -12,7 +12,7 @@ import type {
   EstimateCreditsResponse,
   OperationType,
   TransactionType,
-} from '@ai-video-studio/types';
+} from '../types';
 
 export const creditApi = {
   /**

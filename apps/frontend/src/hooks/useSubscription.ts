@@ -7,7 +7,7 @@ import type {
   SubscriptionPlan,
   SubscriptionUsage,
   BillingHistory
-} from '@ai-video-studio/types';
+} from '../types';
 
 interface UseSubscriptionReturn {
   // Current subscription state

@@ -13,7 +13,7 @@ import type {
   GetAuditLogsRequest,
   GetAuditLogsResponse,
   DateRange
-} from '@ai-video-studio/types';
+} from '../types';
 
 /**
  * Admin API Service

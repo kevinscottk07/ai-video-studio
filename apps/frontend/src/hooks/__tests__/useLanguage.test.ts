@@ -2,12 +2,11 @@ import { renderHook, act } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../useLanguage';
 import i18n from '../../i18n/index';
+import React from 'react';
 
-const createWrapper = ({ children }: { children: React.ReactNode }) => (
-  <I18nextProvider i18n={i18n}>
-    {children}
-  </I18nextProvider>
-);
+const createWrapper = ({ children }: { children: React.ReactNode }) => {
+  return React.createElement(I18nextProvider, { i18n: i18n }, children)
+}
 
 // Mock localStorage
 const localStorageMock = {

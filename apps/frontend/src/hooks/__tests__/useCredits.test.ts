@@ -5,6 +5,7 @@ import { useCredits, useCreditCheck } from '../useCredits';
 import { creditApi } from '../../services/api/creditApi';
 import { useRealTime } from '../useRealTime';
 import { useToast } from '../../providers/ToastProvider';
+import React from 'react';
 
 // Mock dependencies
 jest.mock('../../services/api/creditApi');
@@ -25,11 +26,9 @@ const createWrapper = () => {
     },
   });
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
+  return ({ children }: { children: React.ReactNode }) => {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children)
+  }
 };
 
 describe('useCredits', () => {

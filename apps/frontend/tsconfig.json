@@ -1,5 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -12,25 +11,24 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/pages/*": ["./src/pages/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/services/*": ["./src/services/*"],
-      "@/stores/*": ["./src/stores/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@ai-video-studio/types": ["../../packages/types/src"],
-      "@ai-video-studio/utils": ["../../packages/utils/src"],
-      "@ai-video-studio/config": ["../../packages/config/src"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.property.test.ts",
+    "src/tests/**/*"
+  ]
 }

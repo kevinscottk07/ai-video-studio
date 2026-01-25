@@ -30,7 +30,7 @@ import { Input } from '../ui/input';
 import { Select } from '../ui/select';
 import { cn } from '../../lib/utils';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
-import type { TransactionType, CreditTransaction } from '@ai-video-studio/types';
+import type { TransactionType, CreditTransaction } from '../../types';
 
 export interface CreditUsageHistoryProps {
   className?: string;

@@ -5,7 +5,7 @@ import type {
   SubscriptionUsage,
   BillingHistory,
   ApiResponse
-} from '@ai-video-studio/types';
+} from '../types';
 
 /**
  * Subscription API Service

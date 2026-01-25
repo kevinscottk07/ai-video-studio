@@ -8,6 +8,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { performanceMonitoring } from '../../services/performanceMonitoring';
+import React from 'react';
 
 // Mock components for testing
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -18,13 +19,9 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
-    </QueryClientProvider>
-  );
+  return React.createElement(QueryClientProvider, { client: queryClient },
+    React.createElement(BrowserRouter, {}, children)
+  )
 };
 
 describe('Performance Tests', () => {

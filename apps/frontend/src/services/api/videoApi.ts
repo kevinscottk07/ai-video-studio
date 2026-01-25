@@ -5,7 +5,7 @@ import type {
   GenerationJob,
   VideoGenerationResult,
   SupportedVideoOptions,
-} from '@ai-video-studio/types';
+} from '../types';
 
 export interface VideoGenerationParams {
   prompt: string;

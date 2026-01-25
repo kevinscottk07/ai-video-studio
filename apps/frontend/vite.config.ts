@@ -15,9 +15,6 @@ export default defineConfig({
       '@/stores': path.resolve(__dirname, './src/stores'),
       '@/types': path.resolve(__dirname, './src/types'),
       '@/utils': path.resolve(__dirname, './src/utils'),
-      '@ai-video-studio/types': path.resolve(__dirname, '../../packages/types/src'),
-      '@ai-video-studio/utils': path.resolve(__dirname, '../../packages/utils/src'),
-      '@ai-video-studio/config': path.resolve(__dirname, '../../packages/config/src'),
     },
   },
   server: {
