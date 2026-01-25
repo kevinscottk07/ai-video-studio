@@ -2,7 +2,7 @@
   "name": "ai-video-studio-frontend",
   "version": "1.0.0",
   "type": "module",
-  "deploymentTimestamp": "2025-01-25T21:35:00.000Z",
+  "deploymentTimestamp": "2026-01-25T13:13:31.896Z",
   "scripts": {
     "dev": "vite",
     "build": "node build.js",
