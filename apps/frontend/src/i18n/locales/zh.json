@@ -1,0 +1,107 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "update": "更新",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "refresh": "刷新",
+    "current": "当前"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signOut": "退出",
+    "signUp": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "forgotPassword": "忘记密码？",
+    "rememberMe": "记住我",
+    "continueWithGoogle": "使用Google继续",
+    "continueWithEmail": "使用邮箱继续",
+    "welcomeBack": "欢迎回来！",
+    "createAccount": "创建账户",
+    "alreadyHaveAccount": "已有账户？",
+    "dontHaveAccount": "还没有账户？",
+    "termsAndPrivacy": "继续即表示您同意我们的服务条款和隐私政策"
+  },
+  "navigation": {
+    "dashboard": "仪表板",
+    "projects": "项目",
+    "generate": "生成",
+    "community": "社区",
+    "settings": "设置",
+    "admin": "管理面板"
+  },
+  "dashboard": {
+    "welcome": "欢迎回来，{{name}}！",
+    "readyToCreate": "准备好今天创造一些精彩的内容了吗？",
+    "newProject": "新项目",
+    "generateVideo": "生成视频",
+    "browseCommuity": "浏览社区",
+    "buyCredits": "购买积分",
+    "recentProjects": "最近项目",
+    "noProjects": "暂无项目",
+    "getStartedMessage": "开始创建您的第一个视频项目。"
+  },
+  "projects": {
+    "title": "项目",
+    "description": "在这里管理您的视频项目。",
+    "createNew": "创建新项目",
+    "noProjects": "未找到项目",
+    "projectName": "项目名称",
+    "lastModified": "最后修改",
+    "status": "状态"
+  },
+  "community": {
+    "title": "社区",
+    "description": "与社区一起发现和分享精彩视频。",
+    "trending": "热门",
+    "recent": "最新",
+    "popular": "受欢迎",
+    "share": "分享",
+    "like": "点赞",
+    "comment": "评论",
+    "download": "下载"
+  },
+  "settings": {
+    "title": "设置",
+    "description": "管理您的账户设置和偏好。",
+    "profile": "个人资料",
+    "account": "账户",
+    "preferences": "偏好设置",
+    "billing": "账单",
+    "security": "安全",
+    "notifications": "通知"
+  },
+  "credits": {
+    "balance": "积分余额",
+    "purchase": "购买积分",
+    "history": "积分历史",
+    "insufficient": "积分不足",
+    "required": "需要积分：{{amount}}",
+    "available": "可用积分：{{amount}}"
+  },
+  "errors": {
+    "generic": "出现了问题，请重试。",
+    "network": "网络错误，请检查您的连接。",
+    "unauthorized": "您无权执行此操作。",
+    "notFound": "未找到请求的资源。",
+    "validation": "请检查您的输入并重试。",
+    "serverError": "服务器错误，请稍后重试。"
+  },
+  "videoGeneration": {
+    "languageHelp": "选择AI生成内容的语言，包括脚本、字幕和音频旁白。",
+    "translationHelper": "翻译和本地化助手"
+  }
+}

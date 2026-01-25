@@ -1,0 +1,334 @@
+{
+  "testSuites": {
+    "backend": {
+      "name": "Backend API Integration Tests",
+      "description": "Tests complete API workflows and service integrations",
+      "requirements": [
+        "1.1", "1.2", "1.3", "1.4", "1.5",
+        "2.1", "2.2", "2.3", "2.4", "2.5",
+        "3.1", "3.2", "3.3", "3.4", "3.5",
+        "4.1", "4.2", "4.3", "4.4",
+        "6.1", "6.2", "6.3", "6.4", "6.5",
+        "7.1", "7.2", "7.3", "7.4", "7.5",
+        "8.1", "8.2", "8.3", "8.4", "8.5",
+        "9.1", "9.2", "9.3", "9.4", "9.5",
+        "10.1", "10.2", "10.3", "10.5",
+        "11.1", "11.2", "11.3",
+        "12.1", "12.2", "12.5"
+      ],
+      "testCases": [
+        {
+          "name": "Authentication and Authorization Integration",
+          "description": "Tests complete authentication flow and role-based access control",
+          "requirements": ["1.1", "1.2", "1.3", "1.4", "1.5"],
+          "scenarios": [
+            "User registration and login",
+            "Token validation and refresh",
+            "Role-based endpoint access",
+            "Session management",
+            "Logout and cleanup"
+          ]
+        },
+        {
+          "name": "Credit System Integration",
+          "description": "Tests complete credit lifecycle management",
+          "requirements": ["3.1", "3.2", "3.3", "3.4", "3.5"],
+          "scenarios": [
+            "Credit purchase and balance tracking",
+            "Credit deduction for operations",
+            "Credit refund on failures",
+            "Insufficient credit handling",
+            "Transaction history tracking"
+          ]
+        },
+        {
+          "name": "Video Generation Pipeline Integration",
+          "description": "Tests complete video generation workflow",
+          "requirements": ["2.1", "2.2", "2.3", "2.4", "2.5", "4.1", "4.2"],
+          "scenarios": [
+            "Generation request processing",
+            "Real-time progress tracking",
+            "Tier-based feature restrictions",
+            "Failure handling and recovery",
+            "Result delivery and storage"
+          ]
+        },
+        {
+          "name": "Project Management Integration",
+          "description": "Tests complete project lifecycle",
+          "requirements": ["6.1", "6.2", "6.3", "6.4", "6.5"],
+          "scenarios": [
+            "Project creation and configuration",
+            "Asset upload and management",
+            "Project sharing and privacy",
+            "Collaborative editing",
+            "Project deletion and cleanup"
+          ]
+        },
+        {
+          "name": "Community Features Integration",
+          "description": "Tests community interactions and content sharing",
+          "requirements": ["7.1", "7.2", "7.3", "7.4", "7.5"],
+          "scenarios": [
+            "Content sharing to community",
+            "User interactions (likes, comments)",
+            "Content moderation",
+            "Privacy controls",
+            "Community analytics"
+          ]
+        },
+        {
+          "name": "Subscription and Billing Integration",
+          "description": "Tests subscription lifecycle and billing",
+          "requirements": ["8.1", "8.2", "8.3", "8.4", "8.5"],
+          "scenarios": [
+            "Subscription creation and activation",
+            "Payment processing",
+            "Subscription renewals",
+            "Plan upgrades and downgrades",
+            "Cancellation handling"
+          ]
+        },
+        {
+          "name": "Real-Time Features Integration",
+          "description": "Tests WebSocket events and real-time updates",
+          "requirements": ["12.1", "12.2"],
+          "scenarios": [
+            "WebSocket connection management",
+            "Real-time notifications",
+            "Live progress updates",
+            "Collaborative features",
+            "Event broadcasting"
+          ]
+        },
+        {
+          "name": "Data Privacy and Compliance Integration",
+          "description": "Tests GDPR/CCPA compliance features",
+          "requirements": ["11.1", "11.2", "11.3"],
+          "scenarios": [
+            "Data export requests",
+            "Data deletion requests",
+            "Consent management",
+            "Privacy policy compliance",
+            "Audit trail maintenance"
+          ]
+        }
+      ]
+    },
+    "frontend": {
+      "name": "Frontend E2E Integration Tests",
+      "description": "Tests complete user journeys and UI interactions",
+      "requirements": [
+        "1.1", "1.2", "1.3", "1.4", "1.5",
+        "2.1", "2.2", "2.3", "2.4", "2.5",
+        "3.1", "3.2", "3.3", "3.4", "3.5",
+        "4.1", "4.2", "4.3", "4.4",
+        "5.1", "5.2", "5.3", "5.5",
+        "6.1", "6.2", "6.3", "6.4", "6.5",
+        "7.1", "7.2", "7.3", "7.4", "7.5",
+        "8.1", "8.2", "8.3", "8.4", "8.5",
+        "9.1", "9.2", "9.3", "9.4", "9.5",
+        "12.1", "12.2", "12.5"
+      ],
+      "testCases": [
+        {
+          "name": "Complete User Journey",
+          "description": "Tests end-to-end user experience from registration to video creation",
+          "requirements": ["1.1", "1.2", "6.1", "6.2", "2.1", "7.1"],
+          "scenarios": [
+            "Landing page and registration",
+            "Dashboard navigation",
+            "Project creation and configuration",
+            "Asset upload and management",
+            "Video generation workflow",
+            "Real-time progress monitoring",
+            "Video review and editing",
+            "Community sharing",
+            "Analytics and insights"
+          ]
+        },
+        {
+          "name": "Advanced Video Generation Features",
+          "description": "Tests tier-specific video generation capabilities",
+          "requirements": ["2.1", "2.2", "2.3", "2.4", "2.5"],
+          "scenarios": [
+            "Free tier limitations",
+            "Pro tier features",
+            "Ultra tier capabilities",
+            "VR format support",
+            "Resolution restrictions",
+            "Duration limits"
+          ]
+        },
+        {
+          "name": "Payment and Billing Integration",
+          "description": "Tests comprehensive billing and subscription management",
+          "requirements": ["8.1", "8.2", "8.3", "8.4", "8.5"],
+          "scenarios": [
+            "Plan comparison and selection",
+            "Payment method management",
+            "Subscription upgrades",
+            "Billing history",
+            "Invoice downloads",
+            "Cancellation flow",
+            "Retention offers"
+          ]
+        },
+        {
+          "name": "Community Features",
+          "description": "Tests advanced community interactions",
+          "requirements": ["7.1", "7.2", "7.3", "7.4", "7.5"],
+          "scenarios": [
+            "Content filtering and sorting",
+            "Search functionality",
+            "Trending tags",
+            "User interactions",
+            "Content reporting",
+            "Creator following",
+            "Portfolio viewing"
+          ]
+        },
+        {
+          "name": "Multilingual Support",
+          "description": "Tests internationalization and localization",
+          "requirements": ["5.1", "5.2", "5.3", "5.5"],
+          "scenarios": [
+            "Language switching",
+            "Interface localization",
+            "Content generation in multiple languages",
+            "Prompt translation",
+            "RTL language support",
+            "Voice-over languages",
+            "Subtitle generation"
+          ]
+        },
+        {
+          "name": "Real-Time Collaboration",
+          "description": "Tests collaborative editing and real-time features",
+          "requirements": ["12.1", "12.2"],
+          "scenarios": [
+            "Multi-user presence",
+            "Real-time cursor tracking",
+            "Collaborative editing",
+            "Permission-based access",
+            "Comment threads",
+            "Conflict resolution",
+            "Version history"
+          ]
+        }
+      ]
+    },
+    "performance": {
+      "name": "Performance Integration Tests",
+      "description": "Tests system performance under various load conditions",
+      "requirements": ["12.1", "12.2", "12.4", "12.5"],
+      "testCases": [
+        {
+          "name": "Response Time Performance",
+          "description": "Tests API response times under normal load",
+          "requirements": ["12.1"],
+          "scenarios": [
+            "Authentication endpoints < 200ms",
+            "Project operations < 500ms",
+            "Video generation initiation < 1s",
+            "Community feed loading < 300ms",
+            "Real-time updates < 100ms"
+          ]
+        },
+        {
+          "name": "Concurrent User Handling",
+          "description": "Tests system behavior with multiple simultaneous users",
+          "requirements": ["12.2"],
+          "scenarios": [
+            "100 concurrent users",
+            "Simultaneous video generations",
+            "Real-time collaboration",
+            "Database connection pooling",
+            "Resource scaling"
+          ]
+        },
+        {
+          "name": "Frontend Performance",
+          "description": "Tests frontend performance metrics",
+          "requirements": ["12.1", "12.5"],
+          "scenarios": [
+            "Page load times",
+            "Bundle size optimization",
+            "Image loading performance",
+            "Animation smoothness",
+            "Memory usage"
+          ]
+        }
+      ]
+    },
+    "load": {
+      "name": "Load Testing",
+      "description": "Tests system behavior under high load conditions",
+      "requirements": ["12.2", "12.4"],
+      "testCases": [
+        {
+          "name": "High Load Scenarios",
+          "description": "Tests system stability under stress",
+          "requirements": ["12.2", "12.4"],
+          "scenarios": [
+            "1000+ concurrent users",
+            "Bulk video generation requests",
+            "Database query optimization",
+            "Auto-scaling behavior",
+            "Error rate monitoring"
+          ]
+        }
+      ]
+    }
+  },
+  "environment": {
+    "database": {
+      "type": "postgresql",
+      "testDatabase": "ai_video_studio_test",
+      "migrations": true,
+      "seedData": true
+    },
+    "redis": {
+      "testInstance": "redis://localhost:6379/1",
+      "flushOnStart": true
+    },
+    "services": {
+      "backend": {
+        "port": 3001,
+        "healthCheck": "/health"
+      },
+      "frontend": {
+        "port": 5173,
+        "healthCheck": "/"
+      }
+    },
+    "aws": {
+      "mockServices": true,
+      "s3Bucket": "test-ai-video-studio",
+      "bedrockRegion": "us-east-1"
+    }
+  },
+  "reporting": {
+    "formats": ["json", "html", "junit"],
+    "outputDir": "./test-reports",
+    "includeScreenshots": true,
+    "includeLogs": true,
+    "coverage": {
+      "requirements": true,
+      "features": true,
+      "code": false
+    }
+  },
+  "thresholds": {
+    "passRate": 95,
+    "responseTime": {
+      "p95": 2000,
+      "p99": 5000
+    },
+    "errorRate": 1,
+    "coverage": {
+      "requirements": 90,
+      "features": 95
+    }
+  }
+}

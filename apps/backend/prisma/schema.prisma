@@ -1,0 +1,517 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  user
+  admin
+  moderator
+}
+
+enum ProjectStatus {
+  draft
+  generating
+  completed
+  failed
+}
+
+enum VideoResolution {
+  standard
+  hd
+  ultra
+}
+
+enum VideoStyle {
+  cinematic
+  advertisement
+  social_media
+  educational
+  vr
+}
+
+enum JobStatus {
+  queued
+  processing
+  completed
+  failed
+  canceled
+}
+
+enum OperationType {
+  script_generation
+  video_generation
+  music_generation
+  voiceover_generation
+  video_editing
+}
+
+enum TransactionType {
+  purchase
+  deduction
+  refund
+  subscription_grant
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+  past_due
+  unpaid
+}
+
+enum SubscriptionPlan {
+  free
+  starter
+  pro
+  ultra
+}
+
+// Models
+model CreditPurchase {
+  id                  String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  amount              Int      // Number of credits
+  totalCost           Int      // Cost in cents
+  paymentProcessorId  String?  @map("payment_processor_id") @db.VarChar(255)
+  status              String   @default("pending") @db.VarChar(20) // pending, completed, failed
+  metadata            Json     @default("{}")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_purchases")
+}
+
+model User {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email             String    @unique @db.VarChar(255)
+  authProviderId    String    @unique @map("auth_provider_id") @db.VarChar(255)
+  displayName       String    @map("display_name") @db.VarChar(255)
+  profileImage      String?   @map("profile_image")
+  language          String    @default("en") @db.VarChar(10)
+  timezone          String    @default("UTC") @db.VarChar(50)
+  creditBalance     Int       @default(0) @map("credit_balance")
+  totalCreditsEver  Int       @default(0) @map("total_credits_ever")
+  role              UserRole  @default(user)
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt       DateTime? @map("last_login_at") @db.Timestamptz(6)
+
+  // Relations
+  subscriptions      Subscription[]
+  creditTransactions CreditTransaction[]
+  creditPurchases    CreditPurchase[]
+  projects           Project[]
+  generationJobs     GenerationJob[]
+  communityPosts     CommunityPost[]
+  comments           Comment[]
+  likes              CommunityLike[]
+  shares             CommunityShare[]
+  auditLogs          AuditLog[]
+  systemConfigUpdates SystemConfig[]
+  
+  // Moderation relations
+  flaggedContent     ContentModerationFlag[] @relation("FlaggedByUser")
+  reviewedFlags      ContentModerationFlag[] @relation("ReviewedByUser")
+  reportsSubmitted   UserReport[]            @relation("ReportedBy")
+  reportsReceived    UserReport[]            @relation("ReportedUser")
+  reportsReviewed    UserReport[]            @relation("ReportReviewedBy")
+  moderationActions  ModerationAction[]      @relation("ModerationActionUser")
+  moderatorActions   ModerationAction[]      @relation("ModerationActionModerator")
+
+  @@map("users")
+}
+
+model SubscriptionPlan {
+  id            SubscriptionPlan @id
+  name          String           @db.VarChar(100)
+  price         Int              // in cents
+  interval      String           @default("month") @db.VarChar(20)
+  creditsIncluded Int            @default(0) @map("credits_included")
+  features      Json             @default("{}")
+  isActive      Boolean          @default(true) @map("is_active")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id                    String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                String             @map("user_id") @db.Uuid
+  planId                SubscriptionPlan   @map("plan_id")
+  paymentProcessorId    String?            @map("payment_processor_id") @db.VarChar(255)
+  status                SubscriptionStatus @default(active)
+  currentPeriodStart    DateTime           @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd      DateTime           @map("current_period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd     Boolean            @default(false) @map("cancel_at_period_end")
+  creditsIncluded       Int                @default(0) @map("credits_included")
+  creditsUsedThisPeriod Int                @default(0) @map("credits_used_this_period")
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model CreditTransaction {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  type            TransactionType
+  amount          Int             // can be negative for deductions
+  description     String
+  operationId     String?         @map("operation_id") @db.Uuid
+  awsCostCovered  Decimal?        @map("aws_cost_covered") @db.Decimal(10, 4)
+  platformProfit  Decimal?        @map("platform_profit") @db.Decimal(10, 4)
+  metadata        Json            @default("{}")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_transactions")
+}
+
+model Project {
+  id                String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  title             String        @db.VarChar(255)
+  description       String?
+  settings          Json          @default("{}")
+  status            ProjectStatus @default(draft)
+  isPublic          Boolean       @default(false) @map("is_public")
+  communityMetrics  Json          @default("{\"likes\": 0, \"comments\": 0, \"shares\": 0, \"views\": 0}") @map("community_metrics")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAssets    MediaAsset[]
+  generationJobs GenerationJob[]
+  communityPosts CommunityPost[]
+
+  @@map("projects")
+}
+
+model MediaAsset {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId    String   @map("project_id") @db.Uuid
+  filename     String   @db.VarChar(255)
+  originalName String   @map("original_name") @db.VarChar(255)
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  sizeBytes    BigInt   @map("size_bytes")
+  url          String
+  thumbnailUrl String?  @map("thumbnail_url")
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("media_assets")
+}
+
+model GenerationJob {
+  id               String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId        String        @map("project_id") @db.Uuid
+  userId           String        @map("user_id") @db.Uuid
+  operationType    OperationType @map("operation_type")
+  requestData      Json          @map("request_data")
+  status           JobStatus     @default(queued)
+  progress         Int           @default(0) // 0-100
+  creditsRequired  Int           @map("credits_required")
+  creditsDeducted  Int           @default(0) @map("credits_deducted")
+  estimatedAwsCost Decimal?      @map("estimated_aws_cost") @db.Decimal(10, 4)
+  actualAwsCost    Decimal?      @map("actual_aws_cost") @db.Decimal(10, 4)
+  platformProfit   Decimal?      @map("platform_profit") @db.Decimal(10, 4)
+  resultUrl        String?       @map("result_url")
+  errorMessage     String?       @map("error_message")
+  metadata         Json          @default("{}")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt      DateTime?     @map("completed_at") @db.Timestamptz(6)
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("generation_jobs")
+}
+
+model CommunityPost {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId      String    @map("project_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  title          String    @db.VarChar(255)
+  description    String?
+  videoUrl       String    @map("video_url")
+  thumbnailUrl   String    @map("thumbnail_url")
+  tags           String[]  @default([])
+  isPublic       Boolean   @default(true) @map("is_public")
+  allowComments  Boolean   @default(true) @map("allow_comments")
+  allowDownloads Boolean   @default(false) @map("allow_downloads")
+  metrics        Json      @default("{\"likes\": 0, \"comments\": 0, \"shares\": 0, \"views\": 0}")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes    CommunityLike[]
+  comments Comment[]
+  shares   CommunityShare[]
+
+  @@map("community_posts")
+}
+
+model CommunityLike {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("community_likes")
+}
+
+model Comment {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  content         String
+  likes           Int       @default(0)
+  isEdited        Boolean   @default(false) @map("is_edited")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  post          CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentComment Comment?      @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       Comment[]     @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model CommunityShare {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  platform  String   @db.VarChar(50) // 'twitter', 'facebook', 'linkedin', etc.
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("community_shares")
+}
+
+model VideoStyle {
+  id          String  @id @db.VarChar(50)
+  name        String  @db.VarChar(100)
+  description String?
+  baseCredits Int     @default(25) @map("base_credits")
+  multiplier  Decimal @default(1.0) @db.Decimal(3, 2)
+  isActive    Boolean @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("video_styles")
+}
+
+model MusicGenre {
+  id          String   @id @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("music_genres")
+}
+
+model SupportedLanguage {
+  code       String   @id @db.VarChar(10)
+  name       String   @db.VarChar(100)
+  nativeName String   @map("native_name") @db.VarChar(100)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("supported_languages")
+}
+
+model CommunityTag {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @unique @db.VarChar(50)
+  description String?
+  color       String   @default("#3B82F6") @db.VarChar(7) // hex color
+  usageCount  Int      @default(0) @map("usage_count")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("community_tags")
+}
+
+model SystemConfig {
+  key         String   @id @db.VarChar(100)
+  value       String
+  description String?
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  // Relations
+  updatedByUser User? @relation(fields: [updatedBy], references: [id])
+
+  @@map("system_config")
+}
+
+model AuditLog {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
+  action     String    @db.VarChar(100)
+  resource   String    @db.VarChar(100)
+  resourceId String?   @map("resource_id") @db.Uuid
+  oldValues  Json?     @map("old_values")
+  newValues  Json?     @map("new_values")
+  ipAddress  String?   @map("ip_address") @db.Inet
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Content Moderation Models
+enum ModerationStatus {
+  pending
+  approved
+  rejected
+  flagged
+  under_review
+}
+
+enum ReportReason {
+  inappropriate_content
+  spam
+  harassment
+  copyright_violation
+  violence
+  hate_speech
+  nudity
+  misinformation
+  other
+}
+
+enum ModerationAction {
+  no_action
+  warning
+  content_removal
+  account_suspension
+  account_ban
+}
+
+model ContentModerationFlag {
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  contentType     String           @map("content_type") @db.VarChar(50) // 'post', 'comment', 'user_profile'
+  contentId       String           @map("content_id") @db.Uuid
+  flaggedBy       String?          @map("flagged_by") @db.Uuid // null for AI flags
+  reason          ReportReason
+  description     String?
+  aiConfidence    Decimal?         @map("ai_confidence") @db.Decimal(5, 4) // 0.0000 to 1.0000
+  aiAnalysis      Json?            @map("ai_analysis") @default("{}")
+  status          ModerationStatus @default(pending)
+  reviewedBy      String?          @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?        @map("reviewed_at") @db.Timestamptz(6)
+  moderatorNotes  String?          @map("moderator_notes")
+  actionTaken     ModerationAction @default(no_action) @map("action_taken")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  flaggedByUser User? @relation("FlaggedByUser", fields: [flaggedBy], references: [id])
+  reviewedByUser User? @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
+
+  @@map("content_moderation_flags")
+}
+
+model UserReport {
+  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reporterId  String       @map("reporter_id") @db.Uuid
+  reportedUserId String?   @map("reported_user_id") @db.Uuid
+  contentType String?      @map("content_type") @db.VarChar(50) // 'post', 'comment', null for user reports
+  contentId   String?      @map("content_id") @db.Uuid
+  reason      ReportReason
+  description String
+  status      ModerationStatus @default(pending)
+  reviewedBy  String?      @map("reviewed_by") @db.Uuid
+  reviewedAt  DateTime?    @map("reviewed_at") @db.Timestamptz(6)
+  actionTaken ModerationAction @default(no_action) @map("action_taken")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  reporter      User  @relation("ReportedBy", fields: [reporterId], references: [id])
+  reportedUser  User? @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  reviewedByUser User? @relation("ReportReviewedBy", fields: [reviewedBy], references: [id])
+
+  @@map("user_reports")
+}
+
+model ModerationAction {
+  id          String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String                    @map("user_id") @db.Uuid
+  moderatorId String                    @map("moderator_id") @db.Uuid
+  action      ModerationAction          @map("action_type")
+  reason      String
+  duration    Int?                      // Duration in hours for temporary actions
+  contentType String?                   @map("content_type") @db.VarChar(50)
+  contentId   String?                   @map("content_id") @db.Uuid
+  isActive    Boolean                   @default(true) @map("is_active")
+  expiresAt   DateTime?                 @map("expires_at") @db.Timestamptz(6)
+  createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  user      User @relation("ModerationActionUser", fields: [userId], references: [id])
+  moderator User @relation("ModerationActionModerator", fields: [moderatorId], references: [id])
+
+  @@map("moderation_actions")
+}
+
+model CommunityGuideline {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title       String   @db.VarChar(255)
+  description String
+  category    String   @db.VarChar(100)
+  severity    String   @db.VarChar(50) // 'low', 'medium', 'high', 'critical'
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("community_guidelines")
+}
