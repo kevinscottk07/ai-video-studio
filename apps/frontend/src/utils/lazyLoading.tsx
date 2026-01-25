@@ -1,4 +1,4 @@
-import { lazy, Suspense, ComponentType } from 'react';
+import React, { lazy, Suspense, ComponentType } from 'react';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { performanceMonitoring } from '../services/performanceMonitoring';
@@ -199,6 +199,3 @@ export function createIntersectionLazyComponent<T extends ComponentType<any>>(
     return <LazyComponent {...props} />;
   };
 }
-
-// React import for hooks
-import React from 'react';
