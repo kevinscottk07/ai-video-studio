@@ -1,19 +1,21 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "dist/**/*",
-      "use": "@vercel/static"
-    }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "env": {
+    "VITE_DEMO_MODE": "true",
+    "VITE_AUTH0_DOMAIN": "dev-ai-video-studio.us.auth0.com",
+    "VITE_AUTH0_CLIENT_ID": "demo-client-id",
+    "VITE_AUTH0_AUDIENCE": "https://api.aivideostudio.com",
+    "VITE_APP_NAME": "AI Video Studio",
+    "VITE_APP_VERSION": "1.0.0"
+  },
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/dist/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/dist/index.html"
+      "dest": "/index.html"
     }
   ]
 }
