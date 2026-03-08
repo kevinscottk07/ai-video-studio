@@ -2,16 +2,16 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pnpm install && pnpm run build",
+    "buildCommand": "npm install && npm run build",
     "watchPatterns": [
       "**/*.ts",
       "**/*.js",
       "package.json",
-      "pnpm-lock.yaml"
+      "package-lock.json"
     ]
   },
   "deploy": {
-    "startCommand": "pnpm run start:prod",
+    "startCommand": "npm run start:prod",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
@@ -21,12 +21,6 @@
     "production": {
       "variables": {
         "NODE_ENV": "production",
-        "PORT": "3000"
-      }
-    },
-    "staging": {
-      "variables": {
-        "NODE_ENV": "staging",
         "PORT": "3000"
       }
     }
