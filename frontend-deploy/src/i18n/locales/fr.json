@@ -1,0 +1,107 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "refresh": "Actualiser",
+    "current": "Actuel"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "signUp": "S'inscrire",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "rememberMe": "Se souvenir de moi",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithEmail": "Continuer avec l'e-mail",
+    "welcomeBack": "Bon retour !",
+    "createAccount": "Créez votre compte",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "dontHaveAccount": "Vous n'avez pas de compte ?",
+    "termsAndPrivacy": "En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "generate": "Générer",
+    "community": "Communauté",
+    "settings": "Paramètres",
+    "admin": "Panneau d'administration"
+  },
+  "dashboard": {
+    "welcome": "Bon retour, {{name}} !",
+    "readyToCreate": "Prêt à créer quelque chose d'incroyable aujourd'hui ?",
+    "newProject": "Nouveau Projet",
+    "generateVideo": "Générer une Vidéo",
+    "browseCommuity": "Parcourir la Communauté",
+    "buyCredits": "Acheter des Crédits",
+    "recentProjects": "Projets Récents",
+    "noProjects": "Aucun projet pour le moment",
+    "getStartedMessage": "Commencez en créant votre premier projet vidéo."
+  },
+  "projects": {
+    "title": "Projets",
+    "description": "Gérez vos projets vidéo ici.",
+    "createNew": "Créer un Nouveau Projet",
+    "noProjects": "Aucun projet trouvé",
+    "projectName": "Nom du Projet",
+    "lastModified": "Dernière Modification",
+    "status": "Statut"
+  },
+  "community": {
+    "title": "Communauté",
+    "description": "Découvrez et partagez des vidéos incroyables avec la communauté.",
+    "trending": "Tendances",
+    "recent": "Récents",
+    "popular": "Populaires",
+    "share": "Partager",
+    "like": "J'aime",
+    "comment": "Commenter",
+    "download": "Télécharger"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Gérez les paramètres de votre compte et vos préférences.",
+    "profile": "Profil",
+    "account": "Compte",
+    "preferences": "Préférences",
+    "billing": "Facturation",
+    "security": "Sécurité",
+    "notifications": "Notifications"
+  },
+  "credits": {
+    "balance": "Solde de Crédits",
+    "purchase": "Acheter des Crédits",
+    "history": "Historique des Crédits",
+    "insufficient": "Crédits insuffisants",
+    "required": "Crédits requis : {{amount}}",
+    "available": "{{amount}} crédits disponibles"
+  },
+  "errors": {
+    "generic": "Quelque chose s'est mal passé. Veuillez réessayer.",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
+    "notFound": "La ressource demandée n'a pas été trouvée.",
+    "validation": "Veuillez vérifier votre saisie et réessayer.",
+    "serverError": "Erreur serveur. Veuillez réessayer plus tard."
+  },
+  "videoGeneration": {
+    "languageHelp": "Sélectionnez la langue pour le contenu généré par IA, y compris les scripts, les sous-titres et la narration audio.",
+    "translationHelper": "Assistant de Traduction et Localisation"
+  }
+}

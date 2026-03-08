@@ -5,7 +5,7 @@
  * This ensures we only run Vite build without TypeScript compilation
  */
 
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 
 console.log('🚀 Starting custom build process...');
 console.log('📦 Running Vite build only (no TypeScript compilation)');

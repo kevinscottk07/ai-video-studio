@@ -1,0 +1,107 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "current": "Current"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithEmail": "Continue with Email",
+    "welcomeBack": "Welcome back!",
+    "createAccount": "Create your account",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "termsAndPrivacy": "By continuing, you agree to our Terms of Service and Privacy Policy"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "generate": "Generate",
+    "community": "Community",
+    "settings": "Settings",
+    "admin": "Admin Panel"
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {{name}}!",
+    "readyToCreate": "Ready to create something amazing today?",
+    "newProject": "New Project",
+    "generateVideo": "Generate Video",
+    "browseCommuity": "Browse Community",
+    "buyCredits": "Buy Credits",
+    "recentProjects": "Recent Projects",
+    "noProjects": "No projects yet",
+    "getStartedMessage": "Get started by creating your first video project."
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "Manage your video projects here.",
+    "createNew": "Create New Project",
+    "noProjects": "No projects found",
+    "projectName": "Project Name",
+    "lastModified": "Last Modified",
+    "status": "Status"
+  },
+  "community": {
+    "title": "Community",
+    "description": "Discover and share amazing videos with the community.",
+    "trending": "Trending",
+    "recent": "Recent",
+    "popular": "Popular",
+    "share": "Share",
+    "like": "Like",
+    "comment": "Comment",
+    "download": "Download"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences.",
+    "profile": "Profile",
+    "account": "Account",
+    "preferences": "Preferences",
+    "billing": "Billing",
+    "security": "Security",
+    "notifications": "Notifications"
+  },
+  "credits": {
+    "balance": "Credit Balance",
+    "purchase": "Purchase Credits",
+    "history": "Credit History",
+    "insufficient": "Insufficient credits",
+    "required": "Credits required: {{amount}}",
+    "available": "{{amount}} credits available"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "validation": "Please check your input and try again.",
+    "serverError": "Server error. Please try again later."
+  },
+  "videoGeneration": {
+    "languageHelp": "Select the language for AI-generated content including scripts, captions, and audio narration.",
+    "translationHelper": "Translation & Localization Helper"
+  }
+}

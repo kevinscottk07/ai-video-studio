@@ -1,0 +1,107 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "refresh": "Actualizar",
+    "current": "Actual"
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "signUp": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "rememberMe": "Recordarme",
+    "continueWithGoogle": "Continuar con Google",
+    "continueWithEmail": "Continuar con Correo",
+    "welcomeBack": "¡Bienvenido de vuelta!",
+    "createAccount": "Crea tu cuenta",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "dontHaveAccount": "¿No tienes una cuenta?",
+    "termsAndPrivacy": "Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad"
+  },
+  "navigation": {
+    "dashboard": "Panel",
+    "projects": "Proyectos",
+    "generate": "Generar",
+    "community": "Comunidad",
+    "settings": "Configuración",
+    "admin": "Panel de Admin"
+  },
+  "dashboard": {
+    "welcome": "¡Bienvenido de vuelta, {{name}}!",
+    "readyToCreate": "¿Listo para crear algo increíble hoy?",
+    "newProject": "Nuevo Proyecto",
+    "generateVideo": "Generar Video",
+    "browseCommuity": "Explorar Comunidad",
+    "buyCredits": "Comprar Créditos",
+    "recentProjects": "Proyectos Recientes",
+    "noProjects": "Aún no hay proyectos",
+    "getStartedMessage": "Comienza creando tu primer proyecto de video."
+  },
+  "projects": {
+    "title": "Proyectos",
+    "description": "Gestiona tus proyectos de video aquí.",
+    "createNew": "Crear Nuevo Proyecto",
+    "noProjects": "No se encontraron proyectos",
+    "projectName": "Nombre del Proyecto",
+    "lastModified": "Última Modificación",
+    "status": "Estado"
+  },
+  "community": {
+    "title": "Comunidad",
+    "description": "Descubre y comparte videos increíbles con la comunidad.",
+    "trending": "Tendencias",
+    "recent": "Recientes",
+    "popular": "Populares",
+    "share": "Compartir",
+    "like": "Me Gusta",
+    "comment": "Comentar",
+    "download": "Descargar"
+  },
+  "settings": {
+    "title": "Configuración",
+    "description": "Gestiona la configuración de tu cuenta y preferencias.",
+    "profile": "Perfil",
+    "account": "Cuenta",
+    "preferences": "Preferencias",
+    "billing": "Facturación",
+    "security": "Seguridad",
+    "notifications": "Notificaciones"
+  },
+  "credits": {
+    "balance": "Saldo de Créditos",
+    "purchase": "Comprar Créditos",
+    "history": "Historial de Créditos",
+    "insufficient": "Créditos insuficientes",
+    "required": "Créditos requeridos: {{amount}}",
+    "available": "{{amount}} créditos disponibles"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "network": "Error de red. Por favor, verifica tu conexión.",
+    "unauthorized": "No estás autorizado para realizar esta acción.",
+    "notFound": "El recurso solicitado no fue encontrado.",
+    "validation": "Por favor, verifica tu entrada e inténtalo de nuevo.",
+    "serverError": "Error del servidor. Por favor, inténtalo más tarde."
+  },
+  "videoGeneration": {
+    "languageHelp": "Selecciona el idioma para el contenido generado por IA, incluyendo guiones, subtítulos y narración de audio.",
+    "translationHelper": "Asistente de Traducción y Localización"
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "update": "Aktualisieren",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "sort": "Sortieren",
+    "refresh": "Aktualisieren",
+    "current": "Aktuell"
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "signUp": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "rememberMe": "Angemeldet bleiben",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "continueWithEmail": "Mit E-Mail fortfahren",
+    "welcomeBack": "Willkommen zurück!",
+    "createAccount": "Konto erstellen",
+    "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
+    "dontHaveAccount": "Haben Sie noch kein Konto?",
+    "termsAndPrivacy": "Durch Fortfahren stimmen Sie unseren Nutzungsbedingungen und Datenschutzrichtlinien zu"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projekte",
+    "generate": "Generieren",
+    "community": "Community",
+    "settings": "Einstellungen",
+    "admin": "Admin-Panel"
+  },
+  "dashboard": {
+    "welcome": "Willkommen zurück, {{name}}!",
+    "readyToCreate": "Bereit, heute etwas Großartiges zu schaffen?",
+    "newProject": "Neues Projekt",
+    "generateVideo": "Video Generieren",
+    "browseCommuity": "Community Durchsuchen",
+    "buyCredits": "Credits Kaufen",
+    "recentProjects": "Aktuelle Projekte",
+    "noProjects": "Noch keine Projekte",
+    "getStartedMessage": "Beginnen Sie mit der Erstellung Ihres ersten Videoprojekts."
+  },
+  "projects": {
+    "title": "Projekte",
+    "description": "Verwalten Sie hier Ihre Videoprojekte.",
+    "createNew": "Neues Projekt Erstellen",
+    "noProjects": "Keine Projekte gefunden",
+    "projectName": "Projektname",
+    "lastModified": "Zuletzt Geändert",
+    "status": "Status"
+  },
+  "community": {
+    "title": "Community",
+    "description": "Entdecken und teilen Sie großartige Videos mit der Community.",
+    "trending": "Trending",
+    "recent": "Neueste",
+    "popular": "Beliebt",
+    "share": "Teilen",
+    "like": "Gefällt mir",
+    "comment": "Kommentieren",
+    "download": "Herunterladen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "description": "Verwalten Sie Ihre Kontoeinstellungen und Präferenzen.",
+    "profile": "Profil",
+    "account": "Konto",
+    "preferences": "Präferenzen",
+    "billing": "Abrechnung",
+    "security": "Sicherheit",
+    "notifications": "Benachrichtigungen"
+  },
+  "credits": {
+    "balance": "Credit-Guthaben",
+    "purchase": "Credits Kaufen",
+    "history": "Credit-Verlauf",
+    "insufficient": "Unzureichende Credits",
+    "required": "Benötigte Credits: {{amount}}",
+    "available": "{{amount}} Credits verfügbar"
+  },
+  "errors": {
+    "generic": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "unauthorized": "Sie sind nicht berechtigt, diese Aktion auszuführen.",
+    "notFound": "Die angeforderte Ressource wurde nicht gefunden.",
+    "validation": "Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.",
+    "serverError": "Serverfehler. Bitte versuchen Sie es später erneut."
+  },
+  "videoGeneration": {
+    "languageHelp": "Wählen Sie die Sprache für KI-generierte Inhalte einschließlich Skripte, Untertitel und Audio-Erzählung.",
+    "translationHelper": "Übersetzungs- und Lokalisierungsassistent"
+  }
+}
