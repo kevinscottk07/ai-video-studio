@@ -12,9 +12,23 @@
     "VITE_APP_NAME": "AI Video Studio",
     "VITE_APP_VERSION": "1.0.0"
   },
+  "headers": [
+    {
+      "source": "/js/(.*)\\.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)\\.css",
+      "headers": [
+        { "key": "Content-Type", "value": "text/css" }
+      ]
+    }
+  ],
   "rewrites": [
     {
-      "source": "/((?!assets|favicon\\.ico).*)",
+      "source": "/((?!js|assets|images|fonts|favicon\\.ico|vite\\.svg).*)",
       "destination": "/index.html"
     }
   ]
