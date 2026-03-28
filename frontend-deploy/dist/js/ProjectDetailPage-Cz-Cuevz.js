@@ -1,0 +1,2 @@
+import{j as t}from"./chunk-DS7GV-pT.js";import"./chunk-B-9WrDDf.js";const e=()=>t.jsxs("div",{children:[t.jsx("h1",{className:"text-2xl font-bold text-gray-900 dark:text-white",children:"Project Details"}),t.jsx("p",{className:"mt-2 text-gray-600 dark:text-gray-400",children:"Project details will be shown here."})]});export{e as ProjectDetailPage};
+//# sourceMappingURL=ProjectDetailPage-Cz-Cuevz.js.map
