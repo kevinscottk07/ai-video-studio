@@ -12,10 +12,10 @@
     "VITE_APP_NAME": "AI Video Studio",
     "VITE_APP_VERSION": "1.0.0"
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!assets|favicon\\.ico).*)",
+      "destination": "/index.html"
     }
   ]
 }
