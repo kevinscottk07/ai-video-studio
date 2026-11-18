@@ -106,30 +106,98 @@ const OPTIONS = {
 };
 const opts = (list, sel) => list.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(l)}</option>`; }).join("");
 
+let heroCleanup = null;
+const STEPS = [
+  ["Idea", "Type one line. A product launch, a short film, a 9:16 reel.", "“A solar kayak gliding across a misty lake at dawn.”"],
+  ["Storyboard", "Claude plans 5 and 9 second shots: shot sizes, camera moves, timed narration.", "6 shots · 42 s · push-in → orbit → crane"],
+  ["Character lock", "A style bible and fixed cast looks are injected into every frame with a shared seed.", "Paddler — olive shell, silver watch, short dark hair"],
+  ["Keyframes", "Stable Image Core paints the first frame of every shot. Repaint, vary or upload your own.", "1 credit per frame"],
+  ["Voice & captions", "Polly narrates in 9 languages, measured and padded to land exactly on each cut.", "es-US · Pedro · 3.6 s in a 5 s shot"],
+  ["Animatic", "Watch the whole film at final timing with camera moves and voice before you spend.", "Free preview"],
+  ["Render", "Luma Ray2 animates from your keyframes. Only changed shots re-render.", "540p / 720p · seamless continuous takes"],
+  ["Credentials", "Every MP4 ships with a C2PA-style manifest: models, prompts, SHA-256.", "Labeled AI-generated"],
+];
+
 function landing() {
+  document.body.classList.add("is-landing");
   $app.innerHTML = `
-  <section class="hero">
-    <div>
-      <div class="kicker">Kyverin Studio</div>
-      <h1>Direct an AI film,<br/>shot by shot.</h1>
-      <p class="lead">Describe an idea. An AI director writes the storyboard, locks your characters and visual style,
-        paints every keyframe and records the voiceover. Preview the animatic for cents, then render only the shots you approve.</p>
-      <div class="pipeline"><span>Idea</span><span>Storyboard</span><span>Character lock</span><span>Keyframes</span><span>Voiceover</span><span>Animatic</span><span>Render</span><span>Content credentials</span></div>
-      <p class="small muted">Prefer to look around first? <a href="?demo#/studio">Open the live demo</a>. No account needed, nothing is billed.</p>
+  <section class="hero" aria-label="Kyverin Studio">
+    <canvas class="hero-gl" aria-hidden="true"></canvas>
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="hero-copy">
+      <div class="kicker"><span class="rec"></span> Kyverin Studio · AI film studio on AWS</div>
+      <h1 class="mega"><span class="line">Direct</span><span class="line">the <em>film</em>.</span><span class="line outline">Shot by shot.</span></h1>
+      <p class="lead">One idea becomes a storyboard, a locked cast, painted keyframes, a fitted voiceover and a rendered film, with you in the director's chair at every cut.</p>
+      <div class="row cta-row">
+        <a href="#auth" class="btn big" data-scroll="auth">Start directing <span aria-hidden="true">→</span></a>
+        <a href="?demo#/studio" class="btn ghost big">Try the live demo</a>
+      </div>
+      <div class="tickets" aria-label="Specs">
+        <div class="ticket"><b>5s·9s</b><span>Shots</span></div>
+        <div class="ticket hot"><b>720p</b><span>Ray2</span></div>
+        <div class="ticket"><b>9</b><span>Voices</span></div>
+        <div class="ticket"><b>C2PA</b><span>Signed</span></div>
+      </div>
     </div>
-    <div class="card auth" id="authbox"></div>
+    <div class="hud" aria-hidden="true">
+      <div class="callout c1"><i></i><b>AI Director</b><span>Claude on Bedrock<br/>structured storyboards</span></div>
+      <div class="callout c2"><i></i><b>Character lock</b><span>Style bible + cast<br/>shared seed</span></div>
+      <div class="callout c3"><i></i><b>Render engine</b><span>Luma Ray2<br/>image-to-video</span></div>
+      <div class="callout c4"><i></i><b>Assembly</b><span>MediaConvert<br/>captions + provenance</span></div>
+      <div class="scrollcue">Scroll</div>
+    </div>
   </section>
-  <section class="grid features">
-    <div class="card"><h3>AI director</h3><p class="muted">Claude on Amazon Bedrock plans 5 and 9 second shots with camera moves, shot sizes and timed narration.</p></div>
-    <div class="card"><h3>Character &amp; style lock</h3><p class="muted">A style bible and fixed cast descriptions are injected into every frame, with a shared seed, so faces and wardrobe stay consistent.</p></div>
-    <div class="card"><h3>Seamless transitions</h3><p class="muted">Mark a shot "continuous" and Luma Ray2 ends it on the next shot's keyframe for an unbroken take.</p></div>
-    <div class="card"><h3>Animatic first</h3><p class="muted">Play the whole film as a timed, voiced animatic before spending a single render credit.</p></div>
-    <div class="card"><h3>Pay for changes only</h3><p class="muted">Every clip is fingerprinted. Edit one shot and only that shot is re-rendered.</p></div>
-    <div class="card"><h3>Global voices &amp; captions</h3><p class="muted">Narration in 9 languages with Amazon Polly, auto-fitted to each shot, plus WebVTT/SRT captions.</p></div>
-    <div class="card"><h3>Guardrails</h3><p class="muted">Amazon Bedrock Guardrails screen prompts and storyboards. Hard credit, per-user and monthly spend caps.</p></div>
-    <div class="card"><h3>Content credentials</h3><p class="muted">Each final video ships with a C2PA-style provenance manifest: models, prompts and a SHA-256 of the file.</p></div>
+
+  <div class="marquee" aria-hidden="true"><div class="track">${("STORYBOARD ✦ CHARACTER LOCK ✦ KEYFRAMES ✦ VOICEOVER ✦ ANIMATIC ✦ RAY2 RENDER ✦ CAPTIONS ✦ CONTENT CREDENTIALS ✦ ").repeat(4)}</div></div>
+
+  <section class="pipeline-scroll" id="pipeline">
+    <div class="sticky">
+      <div class="pipe-left">
+        <div class="kicker">The pipeline</div>
+        <div class="bignum" id="pnum">01</div>
+        <h2 class="pipe-title" id="ptitle">${STEPS[0][0]}</h2>
+        <p class="lead" id="pdesc">${STEPS[0][1]}</p>
+        <div class="chip" id="pchip">${esc(STEPS[0][2])}</div>
+      </div>
+      <ol class="pipe-rail">${STEPS.map((s, i) => `<li data-i="${i}" class="${i ? "" : "on"}"><span>${String(i + 1).padStart(2, "0")}</span>${s[0]}</li>`).join("")}</ol>
+    </div>
+    ${STEPS.map((_, i) => `<div class="pipe-step" data-i="${i}"></div>`).join("")}
+  </section>
+
+  <section class="bento reveal">
+    <div class="tile t-wide"><div class="kicker">Pay for changes only</div><h3>Every clip is fingerprinted.</h3><p class="muted">Edit one shot and only that shot goes back to the render farm. The rest are reused, free.</p><div class="meter"><span style="width:18%"></span></div><div class="small muted">1 of 6 shots re-rendered · 82% saved</div></div>
+    <div class="tile"><div class="kicker">Seamless takes</div><h3>Continuous transitions</h3><p class="muted">Ray2 ends a shot on the next shot's first frame.</p></div>
+    <div class="tile"><div class="kicker">Guardrails</div><h3>Safe by default</h3><p class="muted">Bedrock Guardrails block deepfakes of real people, election misinformation and explicit content.</p></div>
+    <div class="tile"><div class="kicker">Cost control</div><h3>Hard caps</h3><p class="muted">Credit ledger, per-shot refunds, monthly render cap, AWS Budgets alarm.</p></div>
+    <div class="tile"><div class="kicker">Global</div><h3>9 voices, 2 caption formats</h3><p class="muted">Polly neural narration fitted to every cut, WebVTT + SRT out.</p></div>
+    <div class="tile t-full stat"><div><b>$0</b><span>idle cost: fully serverless</span></div><div><b>9</b><span>narration languages</span></div><div><b>2</b><span>parallel Ray2 shots</span></div></div>
+  </section>
+
+  <section class="final-cta reveal" id="auth">
+    <div>
+      <h2 class="mega small-mega">Your first <em>storyboard</em><br/>is on us.</h2>
+      <p class="lead">New accounts get free credits for storyboards, keyframes and animatics.</p>
+    </div>
+    <div class="card auth glass" id="authbox"></div>
   </section>`;
   authForm("signin");
+  heroCleanup?.(); heroCleanup = null;
+  import("./hero.js").then((m) => { heroCleanup = m.mountHero($app.querySelector(".hero-gl")); }).catch(() => $app.querySelector(".hero-gl")?.classList.add("nogl"));
+  $app.querySelectorAll("[data-scroll]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); document.getElementById(a.dataset.scroll).scrollIntoView({ behavior: "smooth" }); }));
+  // scroll-driven pipeline
+  const set = (i) => {
+    const s = STEPS[i]; document.getElementById("pnum").textContent = String(i + 1).padStart(2, "0");
+    document.getElementById("ptitle").textContent = s[0]; document.getElementById("pdesc").textContent = s[1]; document.getElementById("pchip").textContent = s[2];
+    $app.querySelectorAll(".pipe-rail li").forEach((li) => li.classList.toggle("on", +li.dataset.i === i));
+    const left = $app.querySelector(".pipe-left"); left.classList.remove("swap"); void left.offsetWidth; left.classList.add("swap");
+  };
+  let cur = 0;
+  const io = new IntersectionObserver((ents) => ents.forEach((en) => { if (en.isIntersecting && +en.target.dataset.i !== cur) { cur = +en.target.dataset.i; set(cur); } }), { rootMargin: "-50% 0px -50% 0px" });
+  $app.querySelectorAll(".pipe-step").forEach((el) => io.observe(el));
+  const onScroll = () => document.body.classList.toggle("scrolled", scrollY > 40);
+  removeEventListener("scroll", landing._s || (() => {})); landing._s = onScroll; addEventListener("scroll", onScroll, { passive: true }); onScroll();
+  const rv = new IntersectionObserver((ents) => ents.forEach((en) => en.isIntersecting && en.target.classList.add("in")), { threshold: .15 });
+  $app.querySelectorAll(".reveal").forEach((el) => rv.observe(el));
 }
 
 function authForm(mode, email = "") {
@@ -484,6 +552,7 @@ async function route() {
   const h = location.hash || "#/";
   try {
     if (!auth.signedIn || h === "#/") { if (auth.signedIn && h === "#/") { location.hash = "#/studio"; return; } renderNav(); return landing(); }
+    document.body.classList.remove("is-landing", "scrolled"); heroCleanup?.(); heroCleanup = null;
     if (!ME) await loadMe(); else renderNav();
     if (h.startsWith("#/studio")) return await studio();
     if (h.startsWith("#/credits")) return await credits();
