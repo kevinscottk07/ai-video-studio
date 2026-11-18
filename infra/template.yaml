@@ -1,0 +1,609 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Kyverin Studio - AI video studio on AWS (Bedrock Claude + Luma Ray2 + Stability, Polly, MediaConvert, Step Functions)
+
+# Deploy in us-west-2: Luma Ray2 and Stable Image Core are only offered there.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Description: S3 bucket holding the Lambda zip
+  CodeKey:
+    Type: String
+    Description: S3 key of the Lambda zip (change it on every deploy so Lambda picks up new code)
+  DirectorModelId:
+    Type: String
+    Description: Bedrock model or inference-profile id for the Claude director
+  AdminEmails:
+    Type: String
+    Default: ""
+    Description: Comma-separated emails that get admin rights (rendering, credit grants)
+  RenderPolicy:
+    Type: String
+    Default: admins
+    AllowedValues: [admins, all]
+    Description: Who may start paid video renders
+  WelcomeCredits:
+    Type: Number
+    Default: 25
+  AdminStartCredits:
+    Type: Number
+    Default: 500
+  MonthlyRenderCapUsd:
+    Type: Number
+    Default: 50
+    Description: Hard monthly cap on Ray2 render spend enforced by the API
+  BudgetAlertEmail:
+    Type: String
+    Default: ""
+    Description: Email for AWS Budgets alerts (leave empty to skip the budget)
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 75
+  ExtraAllowedOrigin:
+    Type: String
+    Default: http://localhost:8765
+    Description: Additional CORS origin (local development)
+
+Conditions:
+  HasBudgetEmail: !Not [!Equals [!Ref BudgetAlertEmail, ""]]
+
+Resources:
+  # ------------------------------------------------------------------ storage
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ["*"]
+            AllowedHeaders: ["*"]
+            MaxAge: 3600
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 2 }
+      Tags: [{ Key: app, Value: kyverin-studio }]
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource: [!GetAtt MediaBucket.Arn, !Sub "${MediaBucket.Arn}/*"]
+            Condition: { Bool: { "aws:SecureTransport": "false" } }
+
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      Tags: [{ Key: app, Value: kyverin-studio }]
+
+  SiteOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-site"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Kyverin Studio
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOac.Id
+            S3OriginConfig: { OriginAccessIdentity: "" }
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad          # Managed-CachingDisabled (tiny static app, always fresh)
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # Managed-SecurityHeadersPolicy
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${SiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}"
+
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
+      SSESpecification: { SSEEnabled: true }
+      Tags: [{ Key: app, Value: kyverin-studio }]
+
+  # ------------------------------------------------------------------ auth
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-users"
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      UsernameConfiguration: { CaseSensitive: false }
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms: [{ Name: verified_email, Priority: 1 }]
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: Your Kyverin Studio code
+        EmailMessage: "Your Kyverin Studio verification code is {####}"
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: web
+      GenerateSecret: false
+      ExplicitAuthFlows: [ALLOW_USER_PASSWORD_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      IdTokenValidity: 60
+      AccessTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits: { IdToken: minutes, AccessToken: minutes, RefreshToken: days }
+
+  # ------------------------------------------------------------------ guardrails
+  ContentGuardrail:
+    Type: AWS::Bedrock::Guardrail
+    Properties:
+      Name: !Sub "${AWS::StackName}-content"
+      Description: Screens video prompts and storyboards
+      BlockedInputMessaging: This request goes against Kyverin Studio's content policy.
+      BlockedOutputsMessaging: This storyboard goes against Kyverin Studio's content policy.
+      ContentPolicyConfig:
+        FiltersConfig:
+          - { Type: SEXUAL, InputStrength: HIGH, OutputStrength: HIGH }
+          - { Type: VIOLENCE, InputStrength: MEDIUM, OutputStrength: MEDIUM }
+          - { Type: HATE, InputStrength: HIGH, OutputStrength: HIGH }
+          - { Type: INSULTS, InputStrength: MEDIUM, OutputStrength: MEDIUM }
+          - { Type: MISCONDUCT, InputStrength: HIGH, OutputStrength: HIGH }
+          - { Type: PROMPT_ATTACK, InputStrength: HIGH, OutputStrength: NONE }
+      TopicPolicyConfig:
+        TopicsConfig:
+          - Name: RealPersonDeepfakes
+            Type: DENY
+            Definition: Videos that depict, impersonate or put words in the mouth of a real, identifiable person such as a celebrity, politician or private individual.
+            Examples:
+              - Make a video of the president announcing a new war
+              - Show Taylor Swift endorsing my energy drink
+          - Name: ElectionMisinformation
+            Type: DENY
+            Definition: Content designed to mislead people about elections, voting procedures or candidates.
+            Examples:
+              - A fake news clip saying polls close a day early
+      Tags: [{ Key: app, Value: kyverin-studio }]
+
+  ContentGuardrailVersion:
+    Type: AWS::Bedrock::GuardrailVersion
+    Properties:
+      GuardrailIdentifier: !GetAtt ContentGuardrail.GuardrailId
+      Description: deployed
+
+  # ------------------------------------------------------------------ compute roles
+  MediaConvertRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: mediaconvert.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition: { StringEquals: { "aws:SourceAccount": !Ref AWS::AccountId } }
+      Policies:
+        - PolicyName: media
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "${MediaBucket.Arn}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt MediaBucket.Arn
+
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+      Policies:
+        - PolicyName: app
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                Resource: !GetAtt Table.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub "${MediaBucket.Arn}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt MediaBucket.Arn
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:aws:bedrock:*::foundation-model/*"
+                  - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+                  - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:application-inference-profile/*"
+              - Effect: Allow
+                Action: bedrock:ApplyGuardrail
+                Resource: !GetAtt ContentGuardrail.GuardrailArn
+              - Effect: Allow
+                Action: polly:SynthesizeSpeech
+                Resource: "*"
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-render"
+              - Sid: AutoEnableMarketplaceModels
+                Effect: Allow
+                Action: [aws-marketplace:ViewSubscriptions, aws-marketplace:Subscribe]
+                Resource: "*"
+
+  WorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+      Policies:
+        - PolicyName: app
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query]
+                Resource: !GetAtt Table.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "${MediaBucket.Arn}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt MediaBucket.Arn
+              - Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:StartAsyncInvoke, bedrock:GetAsyncInvoke]
+                Resource:
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/luma.ray-v2:0"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:async-invoke/*"
+              - Effect: Allow
+                Action: [mediaconvert:CreateJob, mediaconvert:GetJob, mediaconvert:DescribeEndpoints, mediaconvert:TagResource]
+                Resource: "*"
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt MediaConvertRole.Arn
+              - Sid: AutoEnableMarketplaceModels
+                Effect: Allow
+                Action: [aws-marketplace:ViewSubscriptions, aws-marketplace:Subscribe]
+                Resource: "*"
+
+  # ------------------------------------------------------------------ functions
+  ApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-api"
+      RetentionInDays: 30
+
+  WorkerLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-worker"
+      RetentionInDays: 30
+
+  ApiFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: ApiLogs
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-api"
+      Runtime: python3.12
+      Architectures: [arm64]
+      Handler: studio.api.handler
+      MemorySize: 1024
+      Timeout: 29
+      Role: !GetAtt ApiRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey }
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Table
+          MEDIA_BUCKET: !Ref MediaBucket
+          DIRECTOR_MODEL_ID: !Ref DirectorModelId
+          GUARDRAIL_ID: !GetAtt ContentGuardrail.GuardrailId
+          GUARDRAIL_VERSION: !GetAtt ContentGuardrailVersion.Version
+          ADMIN_EMAILS: !Ref AdminEmails
+          RENDER_POLICY: !Ref RenderPolicy
+          WELCOME_CREDITS: !Ref WelcomeCredits
+          ADMIN_START_CREDITS: !Ref AdminStartCredits
+          MONTHLY_RENDER_CAP_USD: !Ref MonthlyRenderCapUsd
+          STATE_MACHINE_ARN: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${AWS::StackName}-render"
+
+  WorkerFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: WorkerLogs
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-worker"
+      Runtime: python3.12
+      Architectures: [arm64]
+      Handler: studio.render.handler
+      MemorySize: 1024
+      Timeout: 300
+      Role: !GetAtt WorkerRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey }
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Table
+          MEDIA_BUCKET: !Ref MediaBucket
+          DIRECTOR_MODEL_ID: !Ref DirectorModelId
+          MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
+
+  # ------------------------------------------------------------------ render workflow
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: states.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: [!GetAtt WorkerFunction.Arn, !Sub "${WorkerFunction.Arn}:*"]
+
+  RenderStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub "${AWS::StackName}-render"
+      RoleArn: !GetAtt StateMachineRole.Arn
+      DefinitionString: !Sub
+        - |
+          {
+            "Comment": "Kyverin Studio render: Ray2 shots in parallel, MediaConvert assembly, provenance",
+            "StartAt": "Prepare",
+            "States": {
+              "Prepare": {
+                "Type": "Task", "Resource": "arn:aws:states:::lambda:invoke", "OutputPath": "$.Payload",
+                "Parameters": { "FunctionName": "${Fn}", "Payload": { "action": "prepare", "payload.$": "$" } },
+                "Retry": ${LambdaRetry},
+                "Catch": [{ "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Finalize" }],
+                "Next": "Shots"
+              },
+              "Shots": {
+                "Type": "Map", "ItemsPath": "$.shots", "MaxConcurrency": 2, "ResultPath": "$.results",
+                "ItemSelector": {
+                  "userId.$": "$.userId", "projectId.$": "$.projectId", "renderId.$": "$.renderId",
+                  "shotId.$": "$$.Map.Item.Value.shotId", "index.$": "$$.Map.Item.Value.index"
+                },
+                "ItemProcessor": {
+                  "ProcessorConfig": { "Mode": "INLINE" },
+                  "StartAt": "StartShot",
+                  "States": {
+                    "StartShot": {
+                      "Type": "Task", "Resource": "arn:aws:states:::lambda:invoke", "OutputPath": "$.Payload",
+                      "Parameters": { "FunctionName": "${Fn}", "Payload": { "action": "start_shot", "payload.$": "$" } },
+                      "Retry": ${ModelRetry},
+                      "Catch": [{ "ErrorEquals": ["States.ALL"], "ResultPath": "$.err", "Next": "ShotFailed" }],
+                      "Next": "ShotDone?"
+                    },
+                    "ShotDone?": {
+                      "Type": "Choice",
+                      "Choices": [
+                        { "Variable": "$.status", "StringEquals": "Completed", "Next": "ShotFinished" },
+                        { "Variable": "$.status", "StringEquals": "Failed", "Next": "ShotFinished" }
+                      ],
+                      "Default": "WaitShot"
+                    },
+                    "WaitShot": { "Type": "Wait", "Seconds": 30, "Next": "CheckShot" },
+                    "CheckShot": {
+                      "Type": "Task", "Resource": "arn:aws:states:::lambda:invoke", "OutputPath": "$.Payload",
+                      "Parameters": { "FunctionName": "${Fn}", "Payload": { "action": "check_shot", "payload.$": "$" } },
+                      "Retry": ${ModelRetry},
+                      "Catch": [{ "ErrorEquals": ["States.ALL"], "ResultPath": "$.err", "Next": "ShotFailed" }],
+                      "Next": "ShotDone?"
+                    },
+                    "ShotFailed": {
+                      "Type": "Pass",
+                      "Parameters": { "shotId.$": "$.shotId", "status": "Failed", "error.$": "$.err.Error" },
+                      "End": true
+                    },
+                    "ShotFinished": { "Type": "Succeed" }
+                  }
+                },
+                "Catch": [{ "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Finalize" }],
+                "Next": "Assemble"
+              },
+              "Assemble": {
+                "Type": "Task", "Resource": "arn:aws:states:::lambda:invoke", "OutputPath": "$.Payload",
+                "Parameters": { "FunctionName": "${Fn}", "Payload": { "action": "assemble", "payload.$": "$" } },
+                "Retry": ${LambdaRetry},
+                "Catch": [{ "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Finalize" }],
+                "Next": "Assembled?"
+              },
+              "Assembled?": {
+                "Type": "Choice",
+                "Choices": [{ "Variable": "$.assembleStatus", "StringEquals": "InProgress", "Next": "WaitAssemble" }],
+                "Default": "Finalize"
+              },
+              "WaitAssemble": { "Type": "Wait", "Seconds": 15, "Next": "CheckAssemble" },
+              "CheckAssemble": {
+                "Type": "Task", "Resource": "arn:aws:states:::lambda:invoke", "OutputPath": "$.Payload",
+                "Parameters": { "FunctionName": "${Fn}", "Payload": { "action": "check_assemble", "payload.$": "$" } },
+                "Retry": ${LambdaRetry},
+                "Catch": [{ "ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Finalize" }],
+                "Next": "Assembled?"
+              },
+              "Finalize": {
+                "Type": "Task", "Resource": "arn:aws:states:::lambda:invoke", "OutputPath": "$.Payload",
+                "Parameters": { "FunctionName": "${Fn}", "Payload": { "action": "finalize", "payload.$": "$" } },
+                "Retry": [{ "ErrorEquals": ["States.ALL"], "IntervalSeconds": 5, "MaxAttempts": 5, "BackoffRate": 2 }],
+                "End": true
+              }
+            }
+          }
+        - Fn: !GetAtt WorkerFunction.Arn
+          LambdaRetry: '[{"ErrorEquals":["Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException","Lambda.TooManyRequestsException"],"IntervalSeconds":2,"MaxAttempts":4,"BackoffRate":2}]'
+          ModelRetry: '[{"ErrorEquals":["ThrottlingException","ServiceQuotaExceededException","ServiceUnavailableException","Lambda.TooManyRequestsException","Lambda.ServiceException"],"IntervalSeconds":30,"MaxAttempts":12,"BackoffRate":1.5}]'
+
+  # ------------------------------------------------------------------ http api
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: [!Sub "https://${SiteDistribution.DomainName}", !Ref ExtraAllowedOrigin]
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+        AllowHeaders: [authorization, content-type]
+        MaxAge: 3600
+
+  JwtAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref HttpApi
+      AuthorizerType: JWT
+      Name: cognito
+      IdentitySource: [$request.header.Authorization]
+      JwtConfiguration:
+        Issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+        Audience: [!Ref UserPoolClient]
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiFunction.Arn
+      PayloadFormatVersion: "2.0"
+      TimeoutInMillis: 29000
+
+  ProxyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: ANY /{proxy+}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref JwtAuthorizer
+      Target: !Sub "integrations/${ApiIntegration}"
+
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /health
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${ApiIntegration}"
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 30
+        ThrottlingRateLimit: 15
+
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  # ------------------------------------------------------------------ cost alarm
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasBudgetEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref MonthlyBudgetUsd, Unit: USD }
+      NotificationsWithSubscribers:
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 50, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetAlertEmail }]
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 90, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetAlertEmail }]
+        - Notification: { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref BudgetAlertEmail }]
+
+Outputs:
+  SiteUrl:
+    Value: !Sub "https://${SiteDistribution.DomainName}"
+  DistributionId:
+    Value: !Ref SiteDistribution
+  ApiUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+  SiteBucket:
+    Value: !Ref SiteBucket
+  MediaBucket:
+    Value: !Ref MediaBucket
+  StateMachineArn:
+    Value: !Ref RenderStateMachine

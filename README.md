@@ -1,160 +1,95 @@
-# AI Video Studio
+# Kyverin Studio
 
-A premium SaaS platform for creating AI-generated videos with world-class user experience, real-time collaboration, and credit-based monetization.
+**Direct an AI film, shot by shot.** Describe an idea and an AI director writes a storyboard. The studio locks your characters and visual style, paints every keyframe, records a voiceover fitted to each shot, and plays the whole thing as an animatic. Then it renders only the shots you approve with Luma Ray2 on Amazon Bedrock and assembles the final film with captions and content credentials.
 
-## 🚀 Features
+Fully serverless on AWS: no servers, no containers, nothing billed while idle.
 
-- **Premium UI/UX**: Modern React 18 interface with smooth animations and real-time updates
-- **AI-Powered Video Generation**: Integration with AWS Bedrock and SageMaker for professional video creation
-- **Multi-Tier Subscriptions**: Flexible pricing with credit-based usage system
-- **Real-Time Collaboration**: WebSocket-powered live updates and notifications
-- **Global Accessibility**: Multi-language support with localized content generation
-- **Community Features**: Social sharing, engagement tracking, and content discovery
-- **Enterprise Security**: GDPR/CCPA compliance with secure content storage
+> v2 is a ground-up rebuild of the original scaffold, which now lives in [`legacy/`](legacy/). The old Express/Prisma/Supabase/Railway code was never wired end to end. It also targeted Nova Reel, which AWS retired on 30 Sep 2026.
 
-## 🏗️ Architecture
+## What's new in v2 (2026 AI-video practice)
 
-This is a monorepo containing:
+| Feature | How it works |
+|---|---|
+| **AI director** | Claude on Bedrock (Converse API with a forced tool call) produces a validated JSON storyboard: shots, durations, camera moves, keyframe and motion prompts, and narration timed to about 2.4 words/sec. |
+| **Character & style lock** | A *style bible* and fixed *cast looks* are injected verbatim into every keyframe prompt with a shared per-project seed. Ray2 animates *from* those keyframes (image-to-video), so identity carries across shots. |
+| **Seamless transitions** | Mark a shot `continuous` and Ray2 receives the next shot's keyframe as `frame1`, so the shot ends exactly where the next begins. |
+| **Animatic first** | Keyframes + camera-move animation + voiceover play in the browser at final timing before any render credit is spent. |
+| **Pay for changes only** | Each rendered clip is fingerprinted (prompt, keyframe, duration, resolution). Edit one shot and only that shot is re-rendered. |
+| **Fitted voiceover & captions** | Amazon Polly neural voices in 9 languages. Each line is measured with SSML speech marks, sped up if needed, and padded with silence to the exact shot length. WebVTT and SRT captions are generated from the timings. |
+| **Bring your own frame** | Upload a JPEG (product shot, owned character art) as any shot's keyframe. |
+| **Guardrails** | Amazon Bedrock Guardrails (content filters, prompt-attack filter, denied topics for real-person deepfakes and election misinformation) on prompts and storyboards. Stable Image's own filter is also respected. |
+| **Cost controls** | Credit ledger with atomic reservations, refunds for failed shots, render access limited to admins by default, a hard monthly render cap enforced in DynamoDB, and an AWS Budgets email alarm. |
+| **Content credentials** | Each final MP4 ships with a C2PA-style provenance manifest: models, prompts, `trainedAlgorithmicMedia` source type, and the file's SHA-256. |
 
-- **Frontend** (`apps/frontend`): React 18 + TypeScript + Vite + Tailwind CSS
-- **Backend** (`apps/backend`): Node.js + Express + TypeScript + Supabase
-- **Shared Packages** (`packages/*`): Common utilities and type definitions
+## Architecture
 
-## 🛠️ Development Setup
-
-### Prerequisites
-
-- Node.js 18+ and npm 9+
-- Docker (for local Supabase)
-- AWS Account (for AI services)
-
-### Quick Start
-
-1. **Clone and install dependencies:**
-   ```bash
-   git clone <repository-url>
-   cd ai-video-studio
-   npm install
-   ```
-
-2. **Set up local database:**
-   ```bash
-   npx supabase start
-   ```
-
-3. **Configure environment variables:**
-   ```bash
-   cp apps/frontend/.env.example apps/frontend/.env.local
-   cp apps/backend/.env.example apps/backend/.env.local
-   ```
-
-4. **Start development servers:**
-   ```bash
-   npm run dev
-   ```
-
-   This starts:
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3001
-   - Supabase Studio: http://localhost:54323
-
-## 📁 Project Structure
-
-```
-ai-video-studio/
-├── apps/
-│   ├── frontend/          # React frontend application
-│   │   ├── src/
-│   │   │   ├── components/    # Reusable UI components
-│   │   │   ├── pages/         # Page components
-│   │   │   ├── hooks/         # Custom React hooks
-│   │   │   ├── services/      # API and external service integrations
-│   │   │   ├── stores/        # State management
-│   │   │   ├── types/         # TypeScript type definitions
-│   │   │   └── utils/         # Utility functions
-│   │   ├── public/            # Static assets
-│   │   └── package.json
-│   │
-│   └── backend/           # Node.js backend application
-│       ├── src/
-│       │   ├── controllers/   # Request handlers
-│       │   ├── services/      # Business logic
-│       │   ├── models/        # Database models
-│       │   ├── middleware/    # Express middleware
-│       │   ├── routes/        # API route definitions
-│       │   ├── types/         # TypeScript type definitions
-│       │   └── utils/         # Utility functions
-│       ├── tests/             # Test files
-│       └── package.json
-│
-├── packages/              # Shared packages
-│   ├── types/             # Shared TypeScript types
-│   ├── utils/             # Shared utility functions
-│   └── config/            # Shared configuration
-│
-├── supabase/              # Database schema and migrations
-│   ├── migrations/
-│   └── seed.sql
-│
-└── docs/                  # Documentation
-    ├── api/               # API documentation
-    ├── deployment/        # Deployment guides
-    └── development/       # Development guides
+```mermaid
+flowchart LR
+  U[Browser SPA] -->|HTTPS| CF[CloudFront + S3]
+  U -->|Cognito JWT| API[API Gateway HTTP API]
+  U -->|sign up / sign in| COG[Cognito User Pool]
+  API --> L1[Lambda: api]
+  L1 --> DDB[(DynamoDB)]
+  L1 --> S3[(S3 media)]
+  L1 -->|Converse| CL[Claude director]
+  L1 -->|ApplyGuardrail| GR[Bedrock Guardrail]
+  L1 -->|InvokeModel| SI[Stable Image Core keyframes]
+  L1 -->|SynthesizeSpeech| PO[Polly voiceover]
+  L1 -->|StartExecution| SF[Step Functions render]
+  SF --> L2[Lambda: worker]
+  L2 -->|StartAsyncInvoke| RAY[Luma Ray2]
+  L2 -->|CreateJob| MC[MediaConvert assembly]
+  L2 --> S3
 ```
 
-## 🧪 Testing
+The render workflow runs shots in parallel (Map, concurrency 2) with polling, throttling retries, per-shot failure isolation and a timeout on stuck jobs. It then stitches clips and voiceover in MediaConvert and writes the captions and provenance manifest. Any failure path ends in `Finalize`, which refunds the credits for anything that was not produced.
 
-- **Unit Tests**: `npm run test`
-- **Frontend Tests**: `npm run test:frontend`
-- **Backend Tests**: `npm run test:backend`
-- **Property-Based Tests**: Included in test suites with fast-check
+## Costs (us-west-2, Nov 2026)
 
-## 🚀 Deployment
+| Step | AWS cost | Credits (1 credit ≈ $0.10) |
+|---|---|---|
+| Storyboard (Claude) | < $0.05 | 1 |
+| Keyframe (Stable Image Core) | ≈ $0.04 | 1 |
+| Voiceover (Polly neural) | fractions of a cent | free |
+| Ray2 shot, 5 s @ 540p / 720p | $3.75 / $7.50 | 38 / 75 |
+| Ray2 shot, 9 s @ 540p / 720p | $6.75 / $13.50 | 68 / 135 |
+| Assembly (MediaConvert) | ≈ $0.01 | 1 |
 
-### Frontend (Vercel)
+Idle cost is near zero: DynamoDB on-demand, Lambda, HTTP API and pennies of S3/CloudFront. Ray2 is the only expensive step, which is why the animatic-first workflow, render allowlist and monthly cap exist.
+
+## Deploy
+
+Prerequisites: an AWS account with Bedrock access in **us-west-2** (Anthropic Claude, Luma Ray2 and Stability models enabled; third-party models auto-subscribe on first use), and Python 3.10+ with `boto3`.
+
 ```bash
-npm run build:frontend
-# Deploy to Vercel
+python infra/deploy.py --admin-email you@example.com --budget-email you@example.com
 ```
 
-### Backend (Railway/Render)
+The script zips the Lambda code and picks the newest Claude Sonnet inference profile. It then creates or updates the CloudFormation stack (`infra/template.yaml`), writes `config.js`, uploads the site and prints the URL. Re-run it after any change. Remove everything with `--destroy`.
+
+Useful flags: `--render-policy all` (let every user render; mind the cost), `--monthly-render-cap 100`.
+
+## Develop
+
 ```bash
-npm run build:backend
-# Deploy to Railway or Render
+# backend unit + pipeline tests (no AWS needed, in-memory fakes)
+cd backend && python -m unittest -v tests.test_studio
+
+# frontend: serve statically; with no API configured it runs in demo mode
+cd frontend && python -m http.server 8765   # http://localhost:8765/?demo#/studio
 ```
 
-## 📊 Monitoring
+`frontend/demo.js` implements the same API offline, so the hosted site's **live demo** (`?demo`) can be explored without an account and without spending anything.
 
-- **Performance**: Core Web Vitals tracking
-- **Errors**: Comprehensive error boundaries
-- **Analytics**: User behavior and system metrics
-- **Costs**: AWS usage and credit system tracking
+## Repository layout
 
-## 🔧 Scripts
+```
+backend/studio/   api.py (HTTP routes), director.py (Claude), media.py (keyframes, Polly, captions),
+                  render.py (Step Functions steps, Ray2, MediaConvert, provenance), pricing.py, common.py
+backend/tests/    fakes for DynamoDB/S3/Bedrock/Polly/SFN/MediaConvert + end-to-end pipeline tests
+frontend/         index.html, styles.css, app.js (SPA, Cognito auth without SDK), demo.js
+infra/            template.yaml (CloudFormation), deploy.py
+legacy/           the original v1 scaffold, kept for reference
+```
 
-- `npm run dev` - Start both frontend and backend in development mode
-- `npm run build` - Build all applications for production
-- `npm run test` - Run all tests
-- `npm run lint` - Lint all code
-- `npm run format` - Format code with Prettier
-- `npm run type-check` - Run TypeScript type checking
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Documentation: `/docs`
-- Issues: GitHub Issues
-- Email: support@aivideostudio.com
+Built by Kevin under **Kyverin**.
