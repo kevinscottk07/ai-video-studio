@@ -6,6 +6,11 @@ Fully serverless on AWS: no servers, no containers, nothing billed while idle.
 
 > v2 is a ground-up rebuild of the original scaffold, which now lives in [`legacy/`](legacy/). The old Express/Prisma/Supabase/Railway code was never wired end to end. It also targeted Nova Reel, which AWS retired on 30 Sep 2026.
 
+
+## Design
+
+A teal-and-tungsten cinema grade (grade teal `#0a2228`, bone `#efe8dc`, tungsten `#f2a541` for actions only, letterbox `#061418`) set in Archivo, expanded for display. The landing hero plays a sample film, *The Last Keeper*: four 2.4:1 shots generated with Stable Image Ultra on this account, cut to the storyboard's real timing with camera moves, subtitles in the letterbox and a pausable shot timeline (no autoplay under reduced motion).
+
 ## What's new in v2 (2026 AI-video practice)
 
 | Feature | How it works |
