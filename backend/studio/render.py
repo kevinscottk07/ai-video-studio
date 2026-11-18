@@ -278,4 +278,7 @@ STEPS = {"prepare": prepare, "start_shot": start_shot, "check_shot": check_shot,
 
 
 def handler(event, _context=None):
+    if event.get("action") == "publish_site":
+        from . import publish
+        return publish.publish_site(event["payload"])
     return STEPS[event["action"]](event["payload"])

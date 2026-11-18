@@ -59,15 +59,24 @@ Idle cost is near zero: DynamoDB on-demand, Lambda, HTTP API and pennies of S3/C
 
 ## Deploy
 
-Prerequisites: an AWS account with Bedrock access in **us-west-2** (Anthropic Claude, Luma Ray2 and Stability models enabled; third-party models auto-subscribe on first use), and Python 3.10+ with `boto3`.
+Prerequisites: an AWS account with Bedrock access in **us-west-2**, and Python 3.10+ with `boto3`. Claude requires the one-time **Anthropic use-case form** (Bedrock console → Model catalog → any Anthropic model). Luma Ray2 and Stability models auto-subscribe through AWS Marketplace on first use.
 
 ```bash
 python infra/deploy.py --admin-email you@example.com --budget-email you@example.com
 ```
 
-The script zips the Lambda code and picks the newest Claude Sonnet inference profile. It then creates or updates the CloudFormation stack (`infra/template.yaml`), writes `config.js`, uploads the site and prints the URL. Re-run it after any change. Remove everything with `--destroy`.
+The script zips the Lambda code (with the web app bundled, see `studio/publish.py`) and picks the newest Claude model your account can actually call. It then creates or updates the CloudFormation stack (`infra/template.yaml`), writes `config.js`, uploads the site and prints the URL. Re-run it after any change. Remove everything with `--destroy`.
 
 Useful flags: `--render-policy all` (let every user render; mind the cost), `--monthly-render-cap 100`.
+
+## Live deployment
+
+| | |
+|---|---|
+| App | https://dj5i1q76opwrq.cloudfront.net (offline demo: `/?demo#/studio`) |
+| API | https://lfasfv94a5.execute-api.us-west-2.amazonaws.com |
+| Region / stack | us-west-2 / `kyverin-studio` |
+| Director model | `us.anthropic.claude-sonnet-4-6` |
 
 ## Develop
 

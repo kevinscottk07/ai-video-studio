@@ -30,24 +30,33 @@ def build_zip() -> bytes:
     buf = io.BytesIO()
     src = os.path.join(ROOT, "backend", "studio")
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for name in sorted(os.listdir(src)):
-            if name.endswith(".py"):
-                info = zipfile.ZipInfo(f"studio/{name}", date_time=(2026, 1, 1, 0, 0, 0))
-                info.external_attr = 0o644 << 16
-                z.writestr(info, open(os.path.join(src, name), "rb").read(), zipfile.ZIP_DEFLATED)
+        files = [(f"studio/{n}", os.path.join(src, n)) for n in sorted(os.listdir(src)) if n.endswith(".py")]
+        site = os.path.join(ROOT, "frontend")  # bundled so the worker can publish the site (publish.py)
+        files += [(f"studio/site/{n}", os.path.join(site, n)) for n in ("index.html", "styles.css", "app.js", "demo.js")]
+        for arc, path in files:
+            info = zipfile.ZipInfo(arc, date_time=(2026, 1, 1, 0, 0, 0))
+            info.external_attr = 0o644 << 16
+            z.writestr(info, open(path, "rb").read(), zipfile.ZIP_DEFLATED, compresslevel=9)
     return buf.getvalue()
 
 
-def pick_director_model(bedrock) -> str:
-    """Newest US cross-region Claude Sonnet inference profile, falling back to Haiku/Opus."""
+def pick_director_model(bedrock, runtime) -> str:
+    """Newest US cross-region Claude inference profile this account can actually call
+    (Sonnet preferred, then Haiku, then Opus). Each candidate is probed with a 1-token call,
+    because a listed profile is not necessarily enabled for the account."""
     profiles = bedrock.list_inference_profiles(typeEquals="SYSTEM_DEFINED", maxResults=1000)["inferenceProfileSummaries"]
     ids = sorted((p["inferenceProfileId"] for p in profiles
                   if p["inferenceProfileId"].startswith("us.anthropic.claude") and p.get("status") == "ACTIVE"), reverse=True)
     for family in ("sonnet", "haiku", "opus"):
-        for i in ids:
-            if family in i:
+        for i in (x for x in ids if family in x):
+            try:
+                runtime.converse(modelId=i, messages=[{"role": "user", "content": [{"text": "ok"}]}],
+                                 inferenceConfig={"maxTokens": 1})
                 return i
-    raise SystemExit("No Claude inference profile found in us-west-2. Enable Anthropic models in the Bedrock console.")
+            except ClientError:
+                continue
+    raise SystemExit("No callable Claude model in us-west-2. In the Bedrock console, submit the Anthropic "
+                     "use-case form and enable a Claude model, then re-run.")
 
 
 def stack_outputs(cfn, name):
@@ -105,7 +114,7 @@ def main():
     print(f"Uploaded {key} ({len(code)} bytes)")
 
     # 2. stack
-    model = a.director_model or pick_director_model(sess.client("bedrock"))
+    model = a.director_model or pick_director_model(sess.client("bedrock"), sess.client("bedrock-runtime"))
     print("Director model:", model)
     params = {"CodeBucket": artifacts, "CodeKey": key, "DirectorModelId": model, "AdminEmails": a.admin_email,
               "RenderPolicy": a.render_policy, "BudgetAlertEmail": a.budget_email,

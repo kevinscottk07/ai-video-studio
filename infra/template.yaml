@@ -320,6 +320,10 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt MediaBucket.Arn
+              - Sid: PublishBundledSite
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${SiteBucket.Arn}/*"
               - Effect: Allow
                 Action: [bedrock:InvokeModel, bedrock:StartAsyncInvoke, bedrock:GetAsyncInvoke]
                 Resource:
@@ -393,6 +397,7 @@ Resources:
           MEDIA_BUCKET: !Ref MediaBucket
           DIRECTOR_MODEL_ID: !Ref DirectorModelId
           MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
+          SITE_BUCKET: !Ref SiteBucket
 
   # ------------------------------------------------------------------ render workflow
   StateMachineRole:
