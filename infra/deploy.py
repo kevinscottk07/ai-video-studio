@@ -32,7 +32,7 @@ def build_zip() -> bytes:
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         files = [(f"studio/{n}", os.path.join(src, n)) for n in sorted(os.listdir(src)) if n.endswith(".py")]
         site = os.path.join(ROOT, "frontend")  # bundled so the worker can publish the site (publish.py)
-        files += [(f"studio/site/{n}", os.path.join(site, n)) for n in ("index.html", "styles.css", "app.js", "demo.js", "hero.js")]
+        files += [(f"studio/site/{n}", os.path.join(site, n)) for n in ("index.html", "styles.css", "app.js", "demo.js")]
         for arc, path in files:
             info = zipfile.ZipInfo(arc, date_time=(2026, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
@@ -140,7 +140,7 @@ def main():
     # 3. frontend
     cfg = {"apiUrl": out["ApiUrl"], "region": REGION, "userPoolClientId": out["UserPoolClientId"]}
     files = {"config.js": f"window.KYVERIN_CONFIG = {json.dumps(cfg)};\n".encode()}
-    for name in ("index.html", "styles.css", "app.js", "demo.js", "hero.js"):
+    for name in ("index.html", "styles.css", "app.js", "demo.js"):
         files[name] = open(os.path.join(ROOT, "frontend", name), "rb").read()
     for name, body in files.items():
         ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"

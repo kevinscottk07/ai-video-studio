@@ -1,17 +1,7 @@
 // Offline demo backend: same routes as the real API, in-memory, never bills anything.
-const PALETTES = [["#0f3d3a", "#fbbf24"], ["#1a2547", "#2dd4bf"], ["#3b1d4a", "#f472b6"], ["#14281d", "#a3e635"], ["#3a1f12", "#fb923c"]];
-const W = { "16:9": [1600, 900], "9:16": [900, 1600], "1:1": [1200, 1200] };
-
-function frameSvg(text, i, aspect) {
-  const [w, h] = W[aspect] || W["16:9"];
-  const [a, b] = PALETTES[i % PALETTES.length];
-  const words = text.split(" ").slice(0, 9).join(" ");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="#050814"/></linearGradient></defs>
-  <rect width="${w}" height="${h}" fill="url(#g)"/><circle cx="${w * 0.72}" cy="${h * 0.35}" r="${h * 0.16}" fill="${b}" opacity=".85"/>
-  <path d="M0 ${h * 0.78} Q ${w * 0.3} ${h * 0.62} ${w * 0.55} ${h * 0.76} T ${w} ${h * 0.7} V ${h} H 0Z" fill="#050814" opacity=".9"/>
-  <text x="${w * 0.06}" y="${h * 0.14}" font-family="Georgia" font-size="${h * 0.05}" fill="#e8ecf8" opacity=".9">Shot ${i + 1}</text>
-  <text x="${w * 0.06}" y="${h * 0.92}" font-family="Arial" font-size="${h * 0.03}" fill="#9aa6c7">${words.replace(/[<&]/g, "")}</text></svg>`;
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+// Demo keyframes reuse the sample film's frames (made with Kyverin's own models).
+function frameSvg(text, i) {
+  return `${(window.KYVERIN_CONFIG || {}).artBase || "/art/"}shot${(i % 4) + 1}.jpg`;
 }
 
 const state = { credits: 400, ledger: [], projects: {} };
