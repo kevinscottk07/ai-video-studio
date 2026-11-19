@@ -1,30 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kyverin Studio — direct AI films, shot by shot</title>
-  <meta name="description" content="Kyverin Studio turns an idea into a storyboarded, voiced, AI-rendered video on AWS." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a2228'/%3E%3Cpath d='M20 14v36M20 32l22-18M20 32l22 18' stroke='%23f2a541' stroke-width='6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
+  <title>Kyverin Studio: direct AI films, shot by shot</title>
+  <meta name="description" content="Kyverin Studio turns one line into a storyboarded, voiced, AI-rendered film on AWS." />
+  <script>try { var t = JSON.parse(localStorage.getItem("kv.theme")); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23201e1b'/%3E%3Cpath d='M22 15v34M22 32l19-17M27 28l14 21' stroke='%23f9f9f9' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='47' cy='47' r='5' fill='%23fa6f00'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="preload" as="image" href="/art/shot1.jpg" fetchpriority="high" />
-  <meta name="theme-color" content="#061418" />
+  <meta name="theme-color" content="#f9f9f9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#100f0d" media="(prefers-color-scheme: dark)" />
   <link rel="stylesheet" href="styles.css" />
   <script src="config.js"></script>
 </head>
 <body>
-  <header class="topbar">
+  <a class="skip" href="#app">Skip to content</a>
+  <header class="topnav">
+    <button class="iconbtn menu" id="menu" aria-label="Open navigation"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <a href="#/" class="brand" aria-label="Kyverin Studio home">
-      <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0a2228"/><path d="M20 14v36M20 32l22-18M20 32l22 18" stroke="#f2a541" stroke-width="6" stroke-linecap="round" fill="none"/></svg>
-      <span>Kyverin <em>Studio</em></span>
+      <svg class="mark" viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><rect width="64" height="64" rx="12" class="mark-bg"/><path d="M22 15v34M22 32l19-17M27 28l14 21" class="mark-k" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="47" cy="47" r="5" fill="#fa6f00"/></svg>
+      <span>Kyverin <span class="brand-sub">Studio</span></span>
     </a>
-    <nav id="nav"></nav>
+    <div class="topnav-end" id="nav"></div>
   </header>
-  <main id="app" aria-live="polite"></main>
+  <div class="shell">
+    <aside class="sidenav" id="side"></aside>
+    <main id="app" tabindex="-1"></main>
+  </div>
+  <dialog id="authdlg" aria-label="Sign in to Kyverin Studio">
+    <form method="dialog" class="dlg-close"><button class="iconbtn" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form>
+    <div class="auth" id="authbox"></div>
+  </dialog>
   <div id="toast" role="status"></div>
-  <footer class="foot">Kyverin Studio. Made with Amazon Bedrock, Polly and MediaConvert on AWS. Every video ships with content credentials and is labeled as AI-generated. <a href="https://github.com/kevinscottk07/ai-video-studio">Source code</a></footer>
   <script type="module" src="app.js"></script>
 </body>
 </html>

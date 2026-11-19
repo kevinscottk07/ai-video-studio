@@ -82,17 +82,54 @@ async function api(method, path, body) {
 let ME = null;
 async function loadMe() { ME = await api("GET", "/me"); renderNav(); return ME; }
 
+const ICON = {
+  home: '<path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/>',
+  film: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9.5h4M17 9.5h4M3 14.5h4M17 14.5h4"/>',
+  coin: '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5c0-1.2 1.1-2 2.5-2s2.5.8 2.5 2-1.1 1.7-2.5 2-2.5.8-2.5 2 1.1 2 2.5 2 2.5-.8 2.5-2M12 6v1.5M12 16.5V18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  left: '<path d="m15 5-7 7 7 7"/>', right: '<path d="m9 5 7 7-7 7"/>',
+};
+const icon = (n, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+
+// Light by default, dark on request; the choice is remembered (set before paint in index.html).
+function setTheme(t) { document.documentElement.dataset.theme = t; store.set("kv.theme", t); renderNav(); }
+
 function renderNav() {
-  const h = location.hash;
-  if (!auth.signedIn) { $nav.innerHTML = `<a href="#/" class="active">Sign in</a>`; return; }
+  const h = location.hash || "#/";
+  const dark = document.documentElement.dataset.theme === "dark";
+  const on = (test) => (test ? 'aria-current="page"' : "");
   $nav.innerHTML = `
-    ${DEMO ? '<span class="pill">Demo mode</span>' : ""}
-    <a href="#/studio" class="${h.startsWith("#/studio") || h.startsWith("#/p/") ? "active" : ""}">Studio</a>
-    <a href="#/credits" class="${h.startsWith("#/credits") ? "active" : ""}">Credits</a>
-    <span class="pill">Credits <b>${ME?.credits ?? "–"}</b></span>
-    ${DEMO ? "" : '<a href="#/" id="signout">Sign out</a>'}`;
-  document.getElementById("signout")?.addEventListener("click", () => { auth.signOut(); ME = null; });
+    ${DEMO ? '<span class="tag">Demo</span>' : ""}
+    <button class="iconbtn" id="theme" aria-label="Switch to ${dark ? "light" : "dark"} mode" title="Switch to ${dark ? "light" : "dark"} mode">${icon(dark ? "sun" : "moon")}</button>
+    ${auth.signedIn ? `<a class="credits" href="#/credits" title="Credit balance">${icon("coin", 16)}<b>${ME?.credits ?? "–"}</b></a>
+      ${DEMO ? "" : '<button class="btn ghost small" id="signout">Sign out</button>'}`
+    : '<button class="btn small" id="signin">Sign in</button>'}`;
+  document.getElementById("theme").onclick = () => setTheme(dark ? "light" : "dark");
+  document.getElementById("signin")?.addEventListener("click", () => openAuth());
+  document.getElementById("signout")?.addEventListener("click", () => { auth.signOut(); ME = null; location.hash = "#/"; route(); });
+  const side = document.getElementById("side");
+  side.innerHTML = `<nav aria-label="Main">
+    <a href="#/" ${on(h === "#/" || h === "#/home")}>${icon("home")}<span>Home</span></a>
+    <a href="#/studio" ${on(h.startsWith("#/studio") || h.startsWith("#/p/"))}>${icon("film")}<span>Films</span></a>
+    <a href="#/credits" ${on(h.startsWith("#/credits"))}>${icon("coin")}<span>Credits</span></a>
+    </nav>
+    <a class="btn side-new" href="#/studio" data-new>${icon("plus", 16)}<span>New film</span></a>
+    <div class="side-foot"><p>Made with Amazon Bedrock on AWS. Every video is labeled as AI-generated.</p><a href="https://github.com/kevinscottk07/ai-video-studio">Source code</a></div>`;
+  side.querySelector("[data-new]").onclick = (e) => { if (!auth.signedIn) { e.preventDefault(); openAuth("#/studio"); } };
 }
+
+// ------------------------------------------------------------------ auth dialog
+let AFTER_AUTH = null;
+function openAuth(next = null, mode = "signin") {
+  AFTER_AUTH = next;
+  const dlg = document.getElementById("authdlg");
+  authForm(mode);
+  if (!dlg.open) dlg.showModal();
+}
+function closeAuth() { const d = document.getElementById("authdlg"); if (d.open) d.close(); }
 
 // ------------------------------------------------------------------ views
 const OPTIONS = {
@@ -109,17 +146,19 @@ const opts = (list, sel) => list.map((o) => { const [v, l] = Array.isArray(o) ? 
 let heroCleanup = null;
 const STEPS = [
   ["Write one line", "A product launch, a short film, a vertical reel. One sentence is enough to start."],
-  ["Get a storyboard", "Claude plans five- and nine-second shots with shot sizes, camera moves and timed narration."],
+  ["Get a storyboard", "The director plans five- and nine-second shots with shot sizes, camera moves and timed narration."],
   ["Lock the cast", "A style bible and fixed character looks go into every frame, so faces and wardrobe hold across cuts."],
   ["Paint keyframes", "Every shot gets a first frame. Repaint it, try a variation, or upload your own."],
-  ["Add the voice", "Narration in nine languages, measured and padded to land on each cut, with captions."],
-  ["Watch the animatic", "Preview the whole film at final timing with camera moves and voice before spending anything on renders."],
-  ["Render", "Luma Ray2 animates each shot from its keyframe. When you change one shot, only that shot renders again."],
+  ["Add the voice", "Narration in nine languages, fitted to each cut, with captions."],
+  ["Watch the animatic", "Preview the whole film at final timing before spending anything on renders."],
+  ["Render", "Each shot animates from its keyframe. Change one shot and only that shot renders again."],
   ["Ship with credentials", "Every MP4 carries a manifest of the models and prompts used, and is labeled as AI-generated."],
 ];
-// The sample film on the landing page. Every frame was generated by Kyverin's own models.
+// The featured film. Every frame was generated by Kyverin's own models.
 const FILM = {
-  title: "The Last Keeper",
+  title: "The Last Keeper", style: "Cinematic",
+  blurb: "A lighthouse keeper's final night on the job, told in four shots with narration. Written, cast and painted by Kyverin from one line.",
+  idea: "A short film about a lighthouse keeper's final night on the job: she climbs the stairs one last time, checks the lens, and at dawn the boats still find their way home.",
   shots: [
     { img: "shot1", secs: 5, move: "Slow push in", size: "Extreme wide", cam: "push", line: "For forty years, the light came on at seven." },
     { img: "shot2", secs: 5, move: "Tilt up", size: "Medium", cam: "tilt-u", line: "Tonight, she climbs the stairs one last time." },
@@ -128,75 +167,87 @@ const FILM = {
   ],
 };
 const ART = (CFG.artBase || "/art/");
+const FORMATS = [
+  { img: "shot1", title: "Short film", note: "A story in four to eight shots", aspect: "16:9", style: "cinematic", shots: 4, idea: FILM.idea },
+  { img: "fmt-trailer", title: "Movie trailer", note: "Big reveals, fast cuts, one hook", aspect: "16:9", style: "cinematic", shots: 6, idea: "A trailer for a sci-fi film: a lone astronaut crosses a red desert toward a crashed ship, discovers it is her own, and the title hits." },
+  { img: "fmt-ad", title: "Product ad", note: "Hero shots that sell one thing", aspect: "16:9", style: "commercial", shots: 4, idea: "A 20-second launch ad for matte black wireless headphones: water, light and silence, ending on the product and the line 'Hear nothing else'." },
+  { img: "fmt-music", title: "Music video", note: "Performance and mood, cut to the beat", aspect: "16:9", style: "cinematic", shots: 6, idea: "A music video for a slow synth-pop song: a singer in a silver jacket performs in an empty warehouse under one red light." },
+  { img: "fmt-doc", title: "Documentary", note: "Observed, natural, narrated", aspect: "16:9", style: "documentary", shots: 5, idea: "A short nature documentary about a snow leopard hunting on a Himalayan ridge at dawn." },
+  { img: "fmt-reel", title: "Vertical reel", note: "9:16 for Reels, Shorts and TikTok", aspect: "9:16", style: "commercial", shots: 3, idea: "A 15-second vertical reel for a neighborhood cafe: the first pour of the morning, latte art, and the door opening to the street." },
+];
+const LOOKS = [["cinematic", "sty-cinematic"], ["commercial", "sty-commercial"], ["documentary", "sty-documentary"], ["anime", "sty-anime"], ["3d-animation", "sty-3d"], ["noir", "sty-noir"], ["vintage", "sty-vintage"]];
+let PREFILL = null;
 
-function landing() {
-  document.body.classList.add("is-landing");
-  const S = FILM.shots, total = S.reduce((n, s) => n + s.secs, 0);
-  $app.innerHTML = `
-  <section class="reel-hero" aria-labelledby="hero-h">
-    <div class="reel" data-shot="0">
-      <div class="frames" aria-hidden="true">${S.map((s, i) => `<img src="${ART}${s.img}.jpg" alt="" class="${i ? "" : "on"}" data-cam="${s.cam}" ${i ? 'loading="lazy"' : 'fetchpriority="high"'} width="1536" height="640"/>`).join("")}</div>
-      <div class="reel-copy">
-        <h1 id="hero-h">Direct AI films, shot&nbsp;by&nbsp;shot.</h1>
-        <p class="lead">Kyverin turns one line into a storyboard, a consistent cast, painted keyframes, fitted narration and a rendered film. You approve every cut.</p>
-        <div class="row cta-row">
-          <a href="#auth" class="btn big" data-scroll="auth">Start directing</a>
-          <a href="?demo#/studio" class="btn ghost big">Open the demo studio</a>
-        </div>
-      </div>
-    </div>
-    <div class="bar">
-      <p class="sub" id="sub">${esc(S[0].line)}</p>
-      <div class="track" role="group" aria-label="Shots in the sample film ${esc(FILM.title)}">
-        <button class="pp" id="pp" aria-label="Pause the sample film"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path class="i-pause" d="M4 3h3v10H4zM9 3h3v10H9z"/><path class="i-play" d="M4 2.5l9 5.5-9 5.5z"/></svg></button>
-        ${S.map((s, i) => `<button class="seg ${i ? "" : "on"}" data-i="${i}" style="flex:${s.secs}" aria-label="Shot ${i + 1}: ${esc(s.size)}, ${esc(s.move)}"><i></i><span>${i + 1}. ${esc(s.move)}</span></button>`).join("")}
-        <span class="dur">${esc(FILM.title)}, ${total} s</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="board" aria-labelledby="board-h">
-    <div class="board-head">
-      <h2 id="board-h">The storyboard behind it</h2>
-      <p>Kyverin wrote this plan from a single line, then painted each keyframe with the same cast and grade. Change a shot and only that shot re-renders.</p>
-    </div>
-    <ol class="shots-strip">${S.map((s, i) => `<li><img src="${ART}${s.img}.jpg" alt="Shot ${i + 1} of ${esc(FILM.title)}: ${esc(s.size)}" loading="lazy" width="1536" height="640"/>
-      <div class="shot-meta"><b>Shot ${i + 1}</b><span>${s.secs} s</span><span>${esc(s.size)}</span><span>${esc(s.move)}</span></div><p>“${esc(s.line)}”</p></li>`).join("")}</ol>
-  </section>
-
-  <section class="process" aria-labelledby="process-h">
-    <h2 id="process-h">From one line to a finished film</h2>
-    <ol>${STEPS.map(([t, d]) => `<li><h3>${t}</h3><p>${d}</p></li>`).join("")}</ol>
-  </section>
-
-  <section class="facts" aria-labelledby="facts-h">
-    <h2 id="facts-h">Made for people watching the budget</h2>
-    <dl>
-      <div><dt>Pay for changes only</dt><dd>Each clip is fingerprinted. Edit one shot and the others are reused for free.</dd></div>
-      <div><dt>Seamless takes</dt><dd>A shot can end on the next shot's first frame, so cuts become continuous moves.</dd></div>
-      <div><dt>Hard spending caps</dt><dd>A credit ledger, refunds for failed shots, a monthly render cap and an AWS budget alarm.</dd></div>
-      <div><dt>Nine narration languages</dt><dd>Neural voices fitted to every cut, with WebVTT and SRT captions.</dd></div>
-      <div><dt>Safe by default</dt><dd>Guardrails block deepfakes of real people, election misinformation and explicit content.</dd></div>
-      <div><dt>Nothing runs while idle</dt><dd>Fully serverless, so an idle studio costs nothing.</dd></div>
-    </dl>
-  </section>
-
-  <section class="join" id="auth" aria-labelledby="join-h">
-    <div>
-      <h2 id="join-h">Your first storyboard is free</h2>
-      <p class="lead">New accounts get credits for storyboards, keyframes and animatics.</p>
-    </div>
-    <div class="card auth" id="authbox"></div>
-  </section>`;
-  authForm("signin");
-  $app.querySelectorAll("[data-scroll]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); document.getElementById(a.dataset.scroll).scrollIntoView({ behavior: "smooth" }); }));
-  const onScroll = () => document.body.classList.toggle("scrolled", scrollY > 40);
-  removeEventListener("scroll", landing._s || (() => {})); landing._s = onScroll; addEventListener("scroll", onScroll, { passive: true }); onScroll();
-  heroCleanup?.(); heroCleanup = mountReel($app.querySelector(".reel-hero"), S);
+function startFrom(p) {
+  PREFILL = p;
+  if (!auth.signedIn) return openAuth("#/studio");
+  location.hash = "#/studio";
 }
 
-// Plays the sample film: one shot at a time, timed like the real cut, with a
-// pause control (and no autoplay for people who prefer reduced motion).
+const tile = (o, i, label) => `<button class="tile" data-i="${i}" aria-label="${esc(label)}">
+  <span class="tile-media"><img src="${ART}${o.img}.jpg" alt="" loading="lazy" width="1344" height="768"/>${o.aspect === "9:16" ? '<span class="tag on-media">9:16</span>' : ""}</span>
+  <span class="tile-text"><b>${esc(o.title)}</b><span>${esc(o.note)}</span></span></button>`;
+
+const row = (id, title, body, extra = "") => `<section class="row-sec" aria-labelledby="${id}-h">
+  <div class="row-head"><h2 id="${id}-h">${title}</h2>${extra}<div class="row-nav"><button class="iconbtn" data-dir="-1" aria-label="Scroll ${title} left">${icon("left")}</button><button class="iconbtn" data-dir="1" aria-label="Scroll ${title} right">${icon("right")}</button></div></div>
+  <div class="rail" id="${id}">${body}</div></section>`;
+
+async function home() {
+  const S = FILM.shots, total = S.reduce((n, s) => n + s.secs, 0);
+  $app.innerHTML = `
+  <section class="feature" aria-labelledby="feat-h">
+    <div class="frames" aria-hidden="true">${S.map((s, i) => `<img src="${ART}${s.img}.jpg" alt="" class="${i ? "" : "on"}" data-cam="${s.cam}" ${i ? 'loading="lazy"' : 'fetchpriority="high"'} width="1536" height="640"/>`).join("")}</div>
+    <div class="feature-copy">
+      <p class="feature-label">Featured film</p>
+      <h1 id="feat-h">${esc(FILM.title)}</h1>
+      <ul class="facts-inline"><li>${S.length} shots</li><li>${total} seconds</li><li>${esc(FILM.style)}</li><li>Narrated</li></ul>
+      <p class="feature-blurb">${esc(FILM.blurb)}</p>
+      <div class="actions"><button class="btn big" id="remix">Make a film like this</button><a class="btn ghost big on-dark" href="#formats-h">Browse formats</a></div>
+    </div>
+    <p class="sub" id="sub" aria-live="off">${esc(S[0].line)}</p>
+    <div class="track" role="group" aria-label="Shots in ${esc(FILM.title)}">
+      <button class="pp" id="pp" aria-label="Pause the featured film"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path class="i-pause" d="M4 3h3v10H4zM9 3h3v10H9z"/><path class="i-play" d="M4 2.5l9 5.5-9 5.5z"/></svg></button>
+      ${S.map((s, i) => `<button class="seg ${i ? "" : "on"}" data-i="${i}" style="flex:${s.secs}" aria-label="Shot ${i + 1}: ${esc(s.size)}, ${esc(s.move)}"><i></i></button>`).join("")}
+    </div>
+  </section>
+  ${auth.signedIn ? row("mine", "Your films", '<div class="rail-msg"><span class="spinner"></span></div>', '<a href="#/studio" class="row-link">See all</a>') : ""}
+  ${row("formats", "Start from a format", FORMATS.map((f, i) => tile(f, i, `${f.title}: ${f.note}`)).join(""))}
+  ${row("looks", "Pick a look", LOOKS.map(([k, img], i) => { const n = OPTIONS.style.find((o) => o[0] === k)[1]; return tile({ img, title: n, note: "Start a film in this style" }, i, `Start a ${n} film`); }).join(""))}
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">How a film gets made</h2>
+    <ol>${STEPS.map(([t, d]) => `<li><h3>${t}</h3><p>${d}</p></li>`).join("")}</ol>
+  </section>`;
+  document.getElementById("remix").onclick = () => startFrom({ idea: FILM.idea, aspect: "16:9", style: "cinematic", shots: 4 });
+  $app.querySelectorAll("#formats .tile").forEach((t) => (t.onclick = () => { const f = FORMATS[+t.dataset.i]; startFrom({ idea: f.idea, aspect: f.aspect, style: f.style, shots: f.shots }); }));
+  $app.querySelectorAll("#looks .tile").forEach((t) => (t.onclick = () => startFrom({ style: LOOKS[+t.dataset.i][0] })));
+  bindRails($app);
+  heroCleanup?.(); heroCleanup = mountReel($app.querySelector(".feature"), S);
+  if (auth.signedIn) {
+    try {
+      if (!ME) await loadMe();
+      const { projects } = await api("GET", "/projects");
+      const el = document.getElementById("mine"); if (!el) return;
+      el.innerHTML = `<a class="tile new-tile" href="#/studio"><span class="tile-media">${icon("plus", 28)}</span><span class="tile-text"><b>New film</b><span>Describe an idea</span></span></a>` +
+        projects.map((p) => `<a class="tile" href="#/p/${p.id}"><span class="tile-media">${p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="" loading="lazy"/>` : ""}</span><span class="tile-text"><b>${esc(p.title)}</b><span>${p.shots} shots, ${esc(p.aspectRatio || "")}, ${fmtDate(p.updated)}</span></span></a>`).join("");
+    } catch (e) { const el = document.getElementById("mine"); if (el) el.innerHTML = `<p class="rail-msg">${esc(e.message)}</p>`; }
+  }
+}
+
+// Carousels: arrow buttons page by a screen; arrow keys move focus tile to tile.
+function bindRails(root) {
+  root.querySelectorAll(".row-sec").forEach((sec) => {
+    const rail = sec.querySelector(".rail");
+    sec.querySelectorAll("[data-dir]").forEach((b) => (b.onclick = () => rail.scrollBy({ left: +b.dataset.dir * rail.clientWidth * 0.9, behavior: "smooth" })));
+    rail.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const tiles = [...rail.querySelectorAll(".tile")]; const k = tiles.indexOf(document.activeElement);
+      const next = tiles[k + (e.key === "ArrowRight" ? 1 : -1)]; if (next) { e.preventDefault(); next.focus(); next.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" }); }
+    });
+  });
+}
+
+// Plays the featured film one shot at a time, timed like the real cut.
+// Pausable; no autoplay for people who prefer reduced motion.
 function mountReel(root, shots) {
   const imgs = [...root.querySelectorAll(".frames img")], segs = [...root.querySelectorAll(".seg")];
   const sub = root.querySelector("#sub"), pp = root.querySelector("#pp");
@@ -205,7 +256,7 @@ function mountReel(root, shots) {
   const show = (n) => {
     i = n; played = 0; t0 = performance.now();
     imgs.forEach((im, k) => { im.classList.toggle("on", k === n); if (k === n && playing) { im.style.animation = "none"; void im.offsetWidth; im.style.animation = ""; } });
-    segs.forEach((s, k) => { s.classList.toggle("on", k === n); s.classList.toggle("done", k < n); s.style.setProperty("--p", k < n ? 1 : 0); });
+    segs.forEach((s, k) => { s.classList.toggle("on", k === n); s.style.setProperty("--p", k < n ? 1 : 0); });
     sub.textContent = shots[n].line;
   };
   const tick = (now) => {
@@ -219,7 +270,7 @@ function mountReel(root, shots) {
   const setPlaying = (v) => {
     if (!v) played += performance.now() - t0; else t0 = performance.now();
     playing = v; root.classList.toggle("paused", !v);
-    pp.setAttribute("aria-label", v ? "Pause the sample film" : "Play the sample film");
+    pp.setAttribute("aria-label", v ? "Pause the featured film" : "Play the featured film");
   };
   pp.onclick = () => setPlaying(!playing);
   segs.forEach((s) => (s.onclick = () => show(+s.dataset.i)));
@@ -256,7 +307,7 @@ function authForm(mode, email = "") {
   box.querySelector("#rs")?.addEventListener("click", async (e) => { e.preventDefault(); await auth.resend(email); toast("Code sent."); });
   const go = box.querySelector("#go");
   const submit = () => busy(go, async () => {
-    if (mode === "signin") { await auth.signIn(v("em"), box.querySelector("#pw").value); location.hash = "#/studio"; }
+    if (mode === "signin") { await auth.signIn(v("em"), box.querySelector("#pw").value); closeAuth(); ME = null; await loadMe(); location.hash = AFTER_AUTH || "#/"; route(); }
     if (mode === "signup") { await auth.signUp(v("em"), box.querySelector("#pw").value); authForm("confirm", v("em")); }
     if (mode === "confirm") { await auth.confirm(email, v("code")); toast("Verified. Sign in to continue."); authForm("signin", email); }
     if (mode === "reset") { await auth.reset(email, v("code"), box.querySelector("#pw").value); toast("Password updated."); authForm("signin", email); }
@@ -266,9 +317,10 @@ function authForm(mode, email = "") {
 }
 
 async function studio() {
-  $app.innerHTML = `<div class="row spread"><h2>Your films</h2></div>
-  <div class="card" style="margin:14px 0 26px">
-    <h3>New video</h3>
+  $app.innerHTML = `<nav class="crumbs" aria-label="Breadcrumb"><a href="#/">Kyverin</a><span aria-hidden="true">/</span><span>Films</span></nav>
+  <div class="page-head"><h1>Films</h1><p>Describe an idea and the director writes the storyboard. You approve every shot before anything renders.</p></div>
+  <div class="card" style="margin:0 0 28px">
+    <h2 class="card-title">New film</h2>
     <div class="grid newform">
       <div><label>What's the video about?</label>
         <textarea id="idea" rows="5" placeholder="e.g. A 30-second launch teaser for a solar-powered kayak. Sunrise on a misty lake, a paddler glides silently, ends on the product at golden hour."></textarea>
@@ -285,6 +337,14 @@ async function studio() {
       <span class="small muted">Costs ${ME?.pricing?.storyboard ?? 1} credit. The director plans shots, cast and narration.</span></div>
   </div>
   <div class="grid projects" id="plist"><div class="muted"><span class="spinner"></span> Loading…</div></div>`;
+  if (PREFILL) {
+    const f = PREFILL; PREFILL = null;
+    if (f.idea) document.getElementById("idea").value = f.idea;
+    if (f.aspect) document.getElementById("aspect").value = f.aspect;
+    if (f.style) document.getElementById("style").value = f.style;
+    if (f.shots) document.getElementById("shots").value = String(f.shots);
+    document.getElementById("idea").focus();
+  }
   document.getElementById("create").onclick = (e) => busy(e.currentTarget, async () => {
     const g = (id) => document.getElementById(id).value;
     if (!g("idea").trim()) throw new Error("Describe your video idea first.");
@@ -324,12 +384,12 @@ function drawEditor() {
   const missing = b.shots.filter((s) => !s.keyframe).length;
   $app.innerHTML = `
   <div class="row spread" style="margin-bottom:16px">
-    <div><a href="#/studio" class="small">← All films</a><h2 style="margin-top:6px">${esc(b.title)}</h2><p class="muted" style="margin:0">${esc(b.logline)}</p></div>
+    <div><nav class="crumbs" aria-label="Breadcrumb"><a href="#/">Kyverin</a><span aria-hidden="true">/</span><a href="#/studio">Films</a><span aria-hidden="true">/</span><span>${esc(b.title)}</span></nav><h1 class="ed-title">${esc(b.title)}</h1><p class="muted" style="margin:0">${esc(b.logline)}</p></div>
     <div class="row">
       <span class="small muted" id="savestate">Saved</span>
       <button class="btn ghost" id="allkf">${missing ? `Paint ${missing} keyframe${missing > 1 ? "s" : ""}` : "Repaint all"}</button>
       <button class="btn ghost" id="allvo">Record voiceover</button>
-      <button class="btn" id="play">▶ Play animatic</button>
+      <button class="btn" id="play">Play animatic</button>
     </div>
   </div>
   <div class="editor">
@@ -563,15 +623,15 @@ async function credits() {
   await loadMe();
   const { entries } = await api("GET", "/me/ledger");
   const pr = ME.pricing;
-  $app.innerHTML = `<h2>Credits</h2>
+  $app.innerHTML = `<nav class="crumbs" aria-label="Breadcrumb"><a href="#/">Kyverin</a><span aria-hidden="true">/</span><span>Credits</span></nav><div class="page-head"><h1>Credits</h1></div>
   <div class="grid" style="grid-template-columns:1fr 2fr">
-    <div class="card"><div class="muted small">Balance</div><div class="total" style="font-family:var(--display);font-size:2.6rem;color:var(--amber)">${ME.credits}</div>
+    <div class="card"><div class="muted small">Balance</div><div class="total">${ME.credits}</div>
       <p class="small muted">1 credit ≈ $${pr.creditUsd.toFixed(2)} of AWS usage. Credits are reserved when a render starts and refunded for any shot that fails.</p>
       <table class="small"><tr><td>Storyboard</td><td>${pr.storyboard}</td></tr><tr><td>Keyframe</td><td>${pr.keyframe}</td></tr><tr><td>Voiceover</td><td>free</td></tr>
       <tr><td>5s shot · 540p</td><td>${pr.shot540p5s}</td></tr><tr><td>5s shot · 720p</td><td>${pr.shot720p5s}</td></tr></table>
       ${ME.isAdmin ? `<p class="small">Admin · user id <code>${esc(ME.userId)}</code></p>` : ""}</div>
     <div class="card"><h3>History</h3><table><tr><th>When</th><th>What</th><th>Change</th><th>Balance</th></tr>
-      ${entries.map((e) => `<tr><td>${fmtDate(e.ts)}</td><td>${esc(e.reason)}</td><td style="color:${e.delta < 0 ? "var(--red)" : "var(--teal)"}">${e.delta > 0 ? "+" : ""}${e.delta}</td><td>${e.balance}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">No activity yet.</td></tr>'}</table></div>
+      ${entries.map((e) => `<tr><td>${fmtDate(e.ts)}</td><td>${esc(e.reason)}</td><td class="${e.delta < 0 ? "neg" : "pos"}">${e.delta > 0 ? "+" : ""}${e.delta}</td><td>${e.balance}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">No activity yet.</td></tr>'}</table></div>
   </div>`;
 }
 
@@ -579,15 +639,20 @@ async function credits() {
 async function route() {
   const h = location.hash || "#/";
   try {
-    if (!auth.signedIn || h === "#/") { if (auth.signedIn && h === "#/") { location.hash = "#/studio"; return; } renderNav(); return landing(); }
-    document.body.classList.remove("is-landing", "scrolled"); heroCleanup?.(); heroCleanup = null;
+    if (!h.startsWith("#/p/")) clearInterval(pollTimer);
+    if (h === "#/" || h === "#/home") { renderNav(); return await home(); }
+    heroCleanup?.(); heroCleanup = null;
+    if (!auth.signedIn) { location.hash = "#/"; openAuth(h); return; }
     if (!ME) await loadMe(); else renderNav();
     if (h.startsWith("#/studio")) return await studio();
     if (h.startsWith("#/credits")) return await credits();
     const m = h.match(/^#\/p\/([a-z0-9]+)/); if (m) return await editor(m[1]);
-    location.hash = "#/studio";
-  } catch (e) { $app.innerHTML = `<div class="card"><h2>Something went wrong</h2><p class="muted">${esc(e.message)}</p></div>`; }
+    location.hash = "#/";
+  } catch (e) { $app.innerHTML = `<div class="card"><h2>Something went wrong</h2><p class="muted">${esc(e.message)}</p><button class="btn ghost" onclick="location.reload()">Reload</button></div>`; }
+  finally { window.scrollTo?.(0, 0); document.getElementById("side")?.classList.remove("open"); }
 }
+document.getElementById("menu")?.addEventListener("click", () => document.getElementById("side").classList.toggle("open"));
+document.getElementById("authdlg")?.addEventListener("click", (e) => { if (e.target.id === "authdlg") closeAuth(); });
 window.addEventListener("hashchange", () => { if (dirty) save(true).catch(() => {}); route(); });
 window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); } });
 route();
