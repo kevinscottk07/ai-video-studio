@@ -9,7 +9,7 @@ Fully serverless on AWS: no servers, no containers, nothing billed while idle.
 
 ## Design
 
-A teal-and-tungsten cinema grade (grade teal `#0a2228`, bone `#efe8dc`, tungsten `#f2a541` for actions only, letterbox `#061418`) set in Archivo, expanded for display. The landing hero plays a sample film, *The Last Keeper*: four 2.4:1 shots generated with Stable Image Ultra on this account, cut to the storyboard's real timing with camera moves, subtitles in the letterbox and a pausable shot timeline (no autoplay under reduced motion).
+Built on the tokens of Cloudscape's newest "one-theme" (AWS's open-source design system, Apache-2.0, the system behind the AWS console): warm stone neutrals, ink primary buttons, indigo for selection and focus, 4px corners. Light by default with a remembered dark mode. Kyverin's own touches: an ember accent (`#fa6f00`) kept for live moments like rendering, Geist / Geist Mono in place of Amazon's proprietary Ember Modern, and a media-first home in the style of streaming apps: a featured film that plays shot by shot, then carousels of your films, formats and looks. Picking a format or look prefills the new-film form. All art on the site was generated with Bedrock models on this account.
 
 ## What's new in v2 (2026 AI-video practice)
 
